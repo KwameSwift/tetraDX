@@ -1,0 +1,31 @@
+#version: "3"
+services:
+#  redis:
+#    image: redis
+#    container_name: finance-redis
+#    ports:
+#      - "6380:6379"
+#    restart: on-failure
+#    command: redis-server
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: tetraDX-backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - static_volume:/home/app/staticfiles
+      - media_volume:/home/app/media
+    command: >
+      sh -c "python manage.py migrate &&
+             python manage.py collectstatic --noinput &&
+             gunicorn _tetradx.wsgi:application --bind 0.0.0.0:8000"
+#    depends_on:
+#      - redis
+    restart: always
+
+volumes:
+  static_volume:
+  media_volume:

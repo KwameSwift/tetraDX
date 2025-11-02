@@ -1,0 +1,64 @@
+# Base Image
+FROM python:3.9-slim-buster
+
+# Python environment setup
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+
+# Setting working directory
+ENV PROJECT=/home/app
+RUN mkdir -p ${PROJECT}/logs ${PROJECT}/media ${PROJECT}/staticfiles ${PROJECT}/static
+WORKDIR ${PROJECT}
+
+# Installing system dependencies (Removed redis-server)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc \
+    libc-dev \
+    python3-dev \
+    supervisor \
+    libpango-1.0-0 \
+    libpangocairo-1.0-0 \
+    libgdk-pixbuf2.0-0 \
+    libcairo2 \
+    libffi-dev \
+    libxml2 \
+    libxml2-dev \
+    libxslt1-dev \
+    zlib1g-dev \
+    libjpeg-dev \
+    libglib2.0-0 \
+    fonts-liberation \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# Add Debian Bullseye repository for newer Pango
+RUN echo "deb http://deb.debian.org/debian bullseye main" >> /etc/apt/sources.list
+
+# Update and install newer Pango
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libpango-1.0-0 \
+    libpangocairo-1.0-0 \
+    libpangoft2-1.0-0 \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# Upgrading pip and installing Python dependencies
+RUN python -m pip install --upgrade pip setuptools
+
+# Installing requirements, including Daphne
+COPY ./requirements.txt ${PROJECT}/requirements.txt
+RUN pip install -r ${PROJECT}/requirements.txt
+
+# Copying project files
+COPY . ${PROJECT}
+
+# Running migrations
+RUN python manage.py makemigrations
+RUN python manage.py migrate
+
+# Collect static
+RUN python manage.py collectstatic --noinput
+
+# Exposing the application port
+EXPOSE 8000
+
+# Running the application using Daphne
+# CMD ["daphne", "-b", "0.0.0.0", "-p", "8000", "project.asgi:application"]

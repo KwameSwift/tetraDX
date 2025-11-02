@@ -74,7 +74,7 @@ class CreateReferralView(APIView):
 
         serializer = CreateReferralSerializer(data=data, context={"user": user})
         if serializer.is_valid():
-            # Create referral
+            # Save referral
             referral_data = serializer.save()
 
             return JsonResponse(

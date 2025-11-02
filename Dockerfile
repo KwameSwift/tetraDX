@@ -1,5 +1,5 @@
 # Base Image
-FROM python:3.9-slim-buster
+FROM python:3.11-slim-bookworm
 
 # Python environment setup
 ENV PYTHONDONTWRITEBYTECODE=1
@@ -15,19 +15,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
     libc-dev \
     python3-dev \
-    supervisor \
-    libpango-1.0-0 \
-    libpangocairo-1.0-0 \
-    libgdk-pixbuf2.0-0 \
-    libcairo2 \
-    libffi-dev \
-    libxml2 \
-    libxml2-dev \
-    libxslt1-dev \
-    zlib1g-dev \
-    libjpeg-dev \
-    libglib2.0-0 \
-    fonts-liberation \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Add Debian Bullseye repository for newer Pango
@@ -50,12 +37,12 @@ RUN pip install -r ${PROJECT}/requirements.txt
 # Copying project files
 COPY . ${PROJECT}
 
-# Running migrations
-RUN python manage.py makemigrations
-RUN python manage.py migrate
+# # Running migrations
+# RUN python manage.py makemigrations
+# RUN python manage.py migrate
 
-# Collect static
-RUN python manage.py collectstatic --noinput
+# # Collect static
+# RUN python manage.py collectstatic --noinput
 
 # Exposing the application port
 EXPOSE 8000

@@ -1,18 +1,33 @@
-#version: "3"
+version: "3.8"
+
 services:
-#  redis:
-#    image: redis
-#    container_name: finance-redis
-#    ports:
-#      - "6380:6379"
-#    restart: on-failure
-#    command: redis-server
+  db:
+    image: postgres:15
+    container_name: tetraDX-postgres
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    restart: always
 
   backend:
     build:
       context: .
       dockerfile: Dockerfile
     container_name: tetraDX-backend
+    environment:
+      - DEBUG=${DEBUG:-1}
+      - SECRET_KEY=${SECRET_KEY}
+      - DB_NAME=${DB_NAME}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_HOST=db
+      - ENVIRONMENT=${ENVIRONMENT}
+      - MEDIA_PATH=${MEDIA_PATH}
     ports:
       - "8000:8000"
     volumes:
@@ -22,10 +37,11 @@ services:
       sh -c "python manage.py migrate &&
              python manage.py collectstatic --noinput &&
              gunicorn _tetradx.wsgi:application --bind 0.0.0.0:8000"
-#    depends_on:
-#      - redis
+    depends_on:
+      - db
     restart: always
 
 volumes:
   static_volume:
   media_volume:
+  postgres_data:

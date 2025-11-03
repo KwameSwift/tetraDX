@@ -67,7 +67,7 @@ INSTALLED_APPS = [
     "medics",
 ]
 
-ALLOWED_HOSTS = ["*", "localhost"]
+ALLOWED_HOSTS = ["*", "localhost", "http://16.170.166.38/"]
 
 # Add your local development URL to CSRF_TRUSTED_ORIGINS
 CSRF_TRUSTED_ORIGINS = [

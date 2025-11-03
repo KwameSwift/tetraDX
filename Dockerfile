@@ -17,15 +17,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     python3-dev \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Add Debian Bullseye repository for newer Pango
-RUN echo "deb http://deb.debian.org/debian bullseye main" >> /etc/apt/sources.list
-
-# Update and install newer Pango
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    libpango-1.0-0 \
-    libpangocairo-1.0-0 \
-    libpangoft2-1.0-0 \
-    && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Upgrading pip and installing Python dependencies
 RUN python -m pip install --upgrade pip setuptools

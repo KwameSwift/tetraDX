@@ -1,0 +1,716 @@
+[
+  {
+    "model": "medics.test",
+    "fields": {
+      "name": "COAGULATION SICKLE CELL"
+    }
+  },
+  {
+    "model": "medics.test",
+    "fields": {
+      "name": "PROTHROMBIN TIME/INR"
+    }
+  },
+  {
+    "model": "medics.test",
+    "fields": {
+      "name": "HB GENOTYPE"
+    }
+  },
+  {
+    "model": "medics.test",
+    "fields": {
+      "name": "PARTIAL THROMBOPLASTIN TIME"
+    }
+  },
+  {
+    "model": "medics.test",
+    "fields": {
+      "name": "HBA1C"
+    }
+  },
+  {
+    "model": "medics.test",
+    "fields": {
+      "name": "BLEEDING TIME"
+    }
+  },
+  {
+    "model": "medics.test",
+    "fields": {
+      "name": "G6PD"
+    }
+  },
+  {
+    "model": "medics.test",
+    "fields": {
+      "name": "RHEUMATOID FACTOR (RH)"
+    }
+  },
+  {
+    "model": "medics.test",
+    "fields": {
+      "name": "MALARIA"
+    }
+  },
+  {
+    "model": "medics.test",
+    "fields": {
+      "name": "CLOTTING TIME"
+    }
+  },
+  {
+    "model": "medics.test",
+    "fields": {
+      "name": "BLOOD FILM COMMENT"
+    }
+  },
+  {
+    "model": "medics.test",
+    "fields": {
+      "name": "ANTI HEMOPHILIA B/FACTOR IX ACTIVITY"
+    }
+  },
+  {
+    "model": "medics.test",
+    "fields": {
+      "name": "ESR"
+    }
+  },
+  {
+    "model": "medics.test",
+    "fields": {
+      "name": "ANTI HEMOPHILIA A/FACTOR VIII ACTIVITY"
+    }
+  },
+  {
+    "model": "medics.test",
+    "fields": {
+      "name": "BLOOD GROUP"
+    }
+  },
+  {
+    "model": "medics.test",
+    "fields": {
+      "name": "DIRECT COMBS"
+    }
+  },
+  {
+    "model": "medics.test",
+    "fields": {
+      "name": "PELVIC SCAN"
+    }
+  },
+  {
+    "model": "medics.test",
+    "fields": {
+      "name": "OBSTETRIC SCAN"
+    }
+  },
+  {
+    "model": "medics.test",
+    "fields": {
+      "name": "H-PYLORI ANTIGEN (BLOOD)"
+    }
+  },
+  {
+    "model": "medics.test",
+    "fields": {
+      "name": "ABDOMINOPELVIC (female)"
+    }
+  },
+  {
+    "model": "medics.test",
+    "fields": {
+      "name": "HEPATITS B SURFACE ANTIGEN"
+    }
+  },
+  {
+    "model": "medics.test",
+    "fields": {
+      "name": "ABDOMINOPELVIC (male)"
+    }
+  },
+  {
+    "model": "medics.test",
+    "fields": {
+      "name": "HEPATITIS B PROFILE"
+    }
+  },
+  {
+    "model": "medics.test",
+    "fields": {
+      "name": "BREAST SCAN"
+    }
+  },
+  {
+    "model": "medics.test",
+    "fields": {
+      "name": "HEPATITIS C"
+    }
+  },
+  {
+    "model": "medics.test",
+    "fields": {
+      "name": "PROSTATE SCAN"
+    }
+  },
+  {
+    "model": "medics.test",
+    "fields": {
+      "name": "HEPATITIS B VIRAL LOAD"
+    }
+  },
+  {
+    "model": "medics.test",
+    "fields": {
+      "name": "THYROID SCAN"
+    }
+  },
+  {
+    "model": "medics.test",
+    "fields": {
+      "name": "HIV VIRAL LOAD"
+    }
+  },
+  {
+    "model": "medics.test",
+    "fields": {
+      "name": "UMBILICAL ARTERY DOPPLER"
+    }
+  },
+  {
+    "model": "medics.test",
+    "fields": {
+      "name": "RETRO SCREENING"
+    }
+  },
+  {
+    "model": "medics.test",
+    "fields": {
+      "name": "VENOUS DOPPLER"
+    }
+  },
+  {
+    "model": "medics.test",
+    "fields": {
+      "name": "GONORRHOEA"
+    }
+  },
+  {
+    "model": "medics.test",
+    "fields": {
+      "name": "SCROTAL SCAN"
+    }
+  },
+  {
+    "model": "medics.test",
+    "fields": {
+      "name": "SYPHILIS"
+    }
+  },
+  {
+    "model": "medics.test",
+    "fields": {
+      "name": "SMALL PARTS"
+    }
+  },
+  {
+    "model": "medics.test",
+    "fields": {
+      "name": "CHLAMYDIA"
+    }
+  },
+  {
+    "model": "medics.test",
+    "fields": {
+      "name": "LOWER EXTREMETIES (DVT)"
+    }
+  },
+  {
+    "model": "medics.test",
+    "fields": {
+      "name": "TYPHIOD IGg n IGm"
+    }
+  },
+  {
+    "model": "medics.test",
+    "fields": {
+      "name": "UROLOGICAL SCAN"
+    }
+  },
+  {
+    "model": "medics.test",
+    "fields": {
+      "name": "H-PYLORI ANTIGEN STOOL"
+    }
+  },
+  {
+    "model": "medics.test",
+    "fields": {
+      "name": "MUSKLOSKELETAL"
+    }
+  },
+  {
+    "model": "medics.test",
+    "fields": {
+      "name": "TPHA"
+    }
+  },
+  {
+    "model": "medics.test",
+    "fields": {
+      "name": "DOPPLER OF BOTH LEGS"
+    }
+  },
+  {
+    "model": "medics.test",
+    "fields": {
+      "name": "TRANSCRANIAL"
+    }
+  },
+  {
+    "model": "medics.test",
+    "fields": {
+      "name": "FETAL ANOMALY"
+    }
+  },
+  {
+    "model": "medics.test",
+    "fields": {
+      "name": "LH 150 ALFA FETO PROTEIN"
+    }
+  },
+  {
+    "model": "medics.test",
+    "fields": {
+      "name": "FSH"
+    }
+  },
+  {
+    "model": "medics.test",
+    "fields": {
+      "name": "CA 125(OVAERIAN CANCER)"
+    }
+  },
+  {
+    "model": "medics.test",
+    "fields": {
+      "name": "AMH"
+    }
+  },
+  {
+    "model": "medics.test",
+    "fields": {
+      "name": "S (BREAST CANCER)"
+    }
+  },
+  {
+    "model": "medics.test",
+    "fields": {
+      "name": "PROLACTIN"
+    }
+  },
+  {
+    "model": "medics.test",
+    "fields": {
+      "name": "CA 19 -9"
+    }
+  },
+  {
+    "model": "medics.test",
+    "fields": {
+      "name": "BETA HCG"
+    }
+  },
+  {
+    "model": "medics.test",
+    "fields": {
+      "name": "THYROID FUNCTION"
+    }
+  },
+  {
+    "model": "medics.test",
+    "fields": {
+      "name": "ESTRADIOL"
+    }
+  },
+  {
+    "model": "medics.test",
+    "fields": {
+      "name": "CEA"
+    }
+  },
+  {
+    "model": "medics.test",
+    "fields": {
+      "name": "PROGESTERONE"
+    }
+  },
+  {
+    "model": "medics.test",
+    "fields": {
+      "name": "FT 3"
+    }
+  },
+  {
+    "model": "medics.test",
+    "fields": {
+      "name": "TESTOSTERONE"
+    }
+  },
+  {
+    "model": "medics.test",
+    "fields": {
+      "name": "FT 4"
+    }
+  },
+  {
+    "model": "medics.test",
+    "fields": {
+      "name": "CORTISOL"
+    }
+  },
+  {
+    "model": "medics.test",
+    "fields": {
+      "name": "TSH"
+    }
+  },
+  {
+    "model": "medics.test",
+    "fields": {
+      "name": "TROPONIN I"
+    }
+  },
+  {
+    "model": "medics.test",
+    "fields": {
+      "name": "TROPONIN T"
+    }
+  },
+  {
+    "model": "medics.test",
+    "fields": {
+      "name": "SEMEN ANALYSIS"
+    }
+  },
+  {
+    "model": "medics.test",
+    "fields": {
+      "name": "LIVER FUNCTION"
+    }
+  },
+  {
+    "model": "medics.test",
+    "fields": {
+      "name": "URINE ANALYSIS"
+    }
+  },
+  {
+    "model": "medics.test",
+    "fields": {
+      "name": "URIC ACID"
+    }
+  },
+  {
+    "model": "medics.test",
+    "fields": {
+      "name": "STOOL EXAMINATION"
+    }
+  },
+  {
+    "model": "medics.test",
+    "fields": {
+      "name": "ELECTROLYTE"
+    }
+  },
+  {
+    "model": "medics.test",
+    "fields": {
+      "name": "CSF"
+    }
+  },
+  {
+    "model": "medics.test",
+    "fields": {
+      "name": "CARDIAC PROFILE"
+    }
+  },
+  {
+    "model": "medics.test",
+    "fields": {
+      "name": "HVS"
+    }
+  },
+  {
+    "model": "medics.test",
+    "fields": {
+      "name": "LIPID PROFILE"
+    }
+  },
+  {
+    "model": "medics.test",
+    "fields": {
+      "name": "HVS CS"
+    }
+  },
+  {
+    "model": "medics.test",
+    "fields": {
+      "name": "FASTING BLOOD SUGAR"
+    }
+  },
+  {
+    "model": "medics.test",
+    "fields": {
+      "name": "BLOOD CS"
+    }
+  },
+  {
+    "model": "medics.test",
+    "fields": {
+      "name": "RANDOM BLOOD SUGAR"
+    }
+  },
+  {
+    "model": "medics.test",
+    "fields": {
+      "name": "URINE CS"
+    }
+  },
+  {
+    "model": "medics.test",
+    "fields": {
+      "name": "OGTT"
+    }
+  },
+  {
+    "model": "medics.test",
+    "fields": {
+      "name": "WOUND SWAB CS"
+    }
+  },
+  {
+    "model": "medics.test",
+    "fields": {
+      "name": "LDH"
+    }
+  },
+  {
+    "model": "medics.test",
+    "fields": {
+      "name": "URETHRAL SWAB CS"
+    }
+  },
+  {
+    "model": "medics.test",
+    "fields": {
+      "name": "CKMB"
+    }
+  },
+  {
+    "model": "medics.test",
+    "fields": {
+      "name": "EAR SWAB CS"
+    }
+  },
+  {
+    "model": "medics.test",
+    "fields": {
+      "name": "CK 180 EYE SWAB CS"
+    }
+  },
+  {
+    "model": "medics.test",
+    "fields": {
+      "name": "PHOSPHATE"
+    }
+  },
+  {
+    "model": "medics.test",
+    "fields": {
+      "name": "THROAT SWAB CS"
+    }
+  },
+  {
+    "model": "medics.test",
+    "fields": {
+      "name": "MAGNESSUIM"
+    }
+  },
+  {
+    "model": "medics.test",
+    "fields": {
+      "name": "PLEURAL EFFUSIONS CS"
+    }
+  },
+  {
+    "model": "medics.test",
+    "fields": {
+      "name": "LIPASE"
+    }
+  },
+  {
+    "model": "medics.test",
+    "fields": {
+      "name": "SPUTUM CS"
+    }
+  },
+  {
+    "model": "medics.test",
+    "fields": {
+      "name": "AMYLASE"
+    }
+  },
+  {
+    "model": "medics.test",
+    "fields": {
+      "name": "C-RECTIVE PROTEIN (CRP)"
+    }
+  },
+  {
+    "model": "medics.test",
+    "fields": {
+      "name": "ELECTROCARDIOGRAM (ECG)"
+    }
+  },
+  {
+    "model": "medics.test",
+    "fields": {
+      "name": "CYTOLOGY"
+    }
+  },
+  {
+    "model": "medics.test",
+    "fields": {
+      "name": "DNA PATERNITY (LEGAL)"
+    }
+  },
+  {
+    "model": "medics.test",
+    "fields": {
+      "name": "HISTOLOGY SMALL SPECIMEN"
+    }
+  },
+  {
+    "model": "medics.test",
+    "fields": {
+      "name": "DNA PATERNITY (CIVIL)"
+    }
+  },
+  {
+    "model": "medics.test",
+    "fields": {
+      "name": "HISTOLOGY MEDUIM SPECIMEN"
+    }
+  },
+  {
+    "model": "medics.test",
+    "fields": {
+      "name": "STOOL OCCULT BLOOD"
+    }
+  },
+  {
+    "model": "medics.test",
+    "fields": {
+      "name": "HISTOLOGY LARGE SPECIMEN"
+    }
+  },
+  {
+    "model": "medics.test",
+    "fields": {
+      "name": "URINE ACR (Microalbumin)"
+    }
+  },
+  {
+    "model": "medics.test",
+    "fields": {
+      "name": "URINE DRUG ABUSE SCREENING"
+    }
+  },
+  {
+    "model": "medics.test",
+    "fields": {
+      "name": "FBC/CBC"
+    }
+  },
+  {
+    "model": "medics.test",
+    "fields": {
+      "name": "SICKLE CELL"
+    }
+  },
+  {
+    "model": "medics.test",
+    "fields": {
+      "name": "INDIRECT COMB"
+    }
+  },
+  {
+    "model": "medics.test",
+    "fields": {
+      "name": "HC) ABDOMINAL SCAN"
+    }
+  },
+  {
+    "model": "medics.test",
+    "fields": {
+      "name": "PSA"
+    }
+  },
+  {
+    "model": "medics.test",
+    "fields": {
+      "name": "LH"
+    }
+  },
+  {
+    "model": "medics.test",
+    "fields": {
+      "name": "ALFA FETO PROTEIN"
+    }
+  },
+  {
+    "model": "medics.test",
+    "fields": {
+      "name": "CA"
+    }
+  },
+  {
+    "model": "medics.test",
+    "fields": {
+      "name": "(OVAERIAN CANCER)"
+    }
+  },
+  {
+    "model": "medics.test",
+    "fields": {
+      "name": "Apollo building"
+    }
+  },
+  {
+    "model": "medics.test",
+    "fields": {
+      "name": "RENAL(KIDNEY) FUNCTION"
+    }
+  },
+  {
+    "model": "medics.test",
+    "fields": {
+      "name": "CK"
+    }
+  },
+  {
+    "model": "medics.test",
+    "fields": {
+      "name": "EYE SWAB CS"
+    }
+  },
+  {
+    "model": "medics.test",
+    "fields": {
+      "name": "PAP SMEAR"
+    }
+  }
+]

@@ -2,7 +2,7 @@ from django.contrib.auth import get_user_model
 from django.urls import reverse_lazy
 
 from _tetradx import BaseTestCase
-from medics.models import Facility, Patient, Referral, TestType
+from medics.models import Facility, Patient, Referral, Test, TestType
 
 User = get_user_model()
 
@@ -31,6 +31,9 @@ class GetAndUpdateReferralTestCase(BaseTestCase):
         self.facility = Facility.objects.create(name="Test Lab")
         self.facility.users.add(self.facility_user)
         self.test_type = TestType.objects.create(name="Blood Test")
+        self.test = Test.objects.create(name="Complete Blood Count")
+        self.test.test_types.add(self.test_type)
+        self.facility.test_types.add(self.test_type)
 
         # Create patient
         self.patient = Patient.objects.create(
@@ -40,7 +43,7 @@ class GetAndUpdateReferralTestCase(BaseTestCase):
         # Create referral
         self.referral = Referral.objects.create(
             patient=self.patient,
-            test_type=self.test_type,
+            test=self.test,
             facility=self.facility,
             referred_by=self.test_user,
         )
@@ -80,6 +83,7 @@ class GetAndUpdateReferralTestCase(BaseTestCase):
         self.assertEqual(response["message"], "Referral retrieved successfully")
         self.assertEqual(response["data"]["referral_id"], self.referral.id)
         self.assertEqual(response["data"]["patient_name_or_id"], "John Doe")
+        self.assertEqual(response["data"]["test_type"], "Blood Test")
 
     def test_get_referral_success_by_facility_worker(self):
         """
@@ -152,6 +156,7 @@ class GetAndUpdateReferralTestCase(BaseTestCase):
         self.assertEqual(response["status"], "success")
         self.assertEqual(response["message"], "Referral status updated successfully")
         self.assertEqual(response["data"]["status"], "Received")
+        self.assertEqual(response["data"]["test_type"], "Blood Test")
 
     def test_update_referral_status_invalid(self):
         """

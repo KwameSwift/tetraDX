@@ -65,6 +65,7 @@ INSTALLED_APPS = [
     "corsheaders",
     "authentication",
     "medics",
+    "utilities",
 ]
 
 ALLOWED_HOSTS = ["*", "localhost", "http://16.170.166.38/"]

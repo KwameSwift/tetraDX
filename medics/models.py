@@ -4,6 +4,7 @@ from enum import Enum
 
 from django.contrib.auth import get_user_model
 from django.db import models
+from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 User = get_user_model()
@@ -13,6 +14,32 @@ class TestStatus(Enum):
     PENDING = "Pending"
     RECEIVED = "Received"
     COMPLETED = "Completed"
+
+
+class Test(models.Model):
+    name = models.CharField(
+        max_length=255,
+        help_text="Name of the test",
+        null=True,
+        blank=True,
+    )
+    description = models.TextField(
+        help_text="Description of the test",
+        null=True,
+        blank=True,
+    )
+    created_at = models.DateTimeField(
+        help_text="Test creation timestamp", default=timezone.now
+    )
+
+    class Meta:
+        db_table = "Test"
+        verbose_name = "Test"
+        verbose_name_plural = "Tests"
+        ordering = ["name"]
+
+    def __str__(self):
+        return f"{self.name}"
 
 
 class TestType(models.Model):
@@ -28,14 +55,21 @@ class TestType(models.Model):
         blank=True,
     )
     created_at = models.DateTimeField(
-        auto_now_add=True, help_text="Test type creation timestamp"
+        auto_now_add=True,
+        help_text="Test type creation timestamp",
+    )
+    tests = models.ManyToManyField(
+        Test,
+        related_name="test_types",
+        help_text="Tests associated with this test type",
+        blank=True,
     )
 
     class Meta:
         db_table = "TestType"
         verbose_name = "Test Type"
         verbose_name_plural = "Test Types"
-        ordering = ["-created_at"]
+        ordering = ["name"]
 
     def __str__(self):
         return f"{self.name}"
@@ -61,6 +95,12 @@ class Facility(models.Model):
         null=True,
         blank=True,
     )
+    test_types = models.ManyToManyField(
+        TestType,
+        related_name="facilities",
+        help_text="Test types available at the facility",
+        blank=True,
+    )
     created_at = models.DateTimeField(
         auto_now_add=True, help_text="Facility creation timestamp"
     )
@@ -69,7 +109,7 @@ class Facility(models.Model):
         db_table = "Facility"
         verbose_name = "Facility"
         verbose_name_plural = "Facilities"
-        ordering = ["-created_at"]
+        ordering = ["name"]
 
     def __str__(self):
         return f"{self.name}"
@@ -126,10 +166,10 @@ class Referral(models.Model):
         null=True,
         blank=True,
     )
-    test_type = models.ForeignKey(
-        TestType,
+    test = models.ForeignKey(
+        Test,
         on_delete=models.CASCADE,
-        related_name="test_type",
+        related_name="test",
         help_text="Type of test being referred",
         null=True,
         blank=True,
@@ -167,3 +207,4 @@ class Referral(models.Model):
         db_table = "Referral"
         verbose_name = "Referral"
         verbose_name_plural = "Referrals"
+        ordering = ["-referred_at"]

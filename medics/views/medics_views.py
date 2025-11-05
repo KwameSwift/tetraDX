@@ -18,37 +18,13 @@ logger = logging.getLogger(__name__)
 User = get_user_model()
 
 
-class GetTestTypesView(APIView):
-    """
-    Retrieve all test types.
-    """
-
-    def get(self, request, *args, **kwargs):
-        try:
-            test_types = TestType.objects.all().values("id", "name").order_by("id")
-            return JsonResponse(
-                {
-                    "status": "success",
-                    "message": "Test types retrieved successfully",
-                    "data": list(test_types),
-                },
-                safe=False,
-                status=status.HTTP_200_OK,
-            )
-        except Exception as e:
-            logger.error(f"Error retrieving test types: {e}")
-            raise api_exception(
-                f"An error occurred while retrieving test types. Please try again. {e}"
-            )
-
-
 class GetFacilitiesView(APIView):
     """
     Retrieve all facilities.
     """
 
     def get(self, request, *args, **kwargs):
-        facilities = Facility.objects.all().values("id", "name").order_by("id")
+        facilities = Facility.objects.all().values("id", "name")
         return JsonResponse(
             {
                 "status": "success",
@@ -58,6 +34,52 @@ class GetFacilitiesView(APIView):
             safe=False,
             status=status.HTTP_200_OK,
         )
+
+
+class GetTestTypesByFacilityView(APIView):
+    """
+    Retrieve test types available at a specific facility.
+    """
+
+    def get(self, request, *args, **kwargs):
+        facility_id = kwargs.get("facility_id")
+        try:
+            facility = Facility.objects.get(id=facility_id)
+            test_types = facility.test_types.all().values("id", "name").order_by("name")
+            return JsonResponse(
+                {
+                    "status": "success",
+                    "message": "Test types for facility retrieved successfully",
+                    "data": list(test_types),
+                },
+                safe=False,
+                status=status.HTTP_200_OK,
+            )
+        except Facility.DoesNotExist:
+            raise api_exception("Facility with the given ID does not exist.")
+
+
+class GetTestsByTestTypeView(APIView):
+    """
+    Retrieve tests under a specific test type.
+    """
+
+    def get(self, request, *args, **kwargs):
+        test_type_id = kwargs.get("test_type_id")
+        try:
+            test_type = TestType.objects.get(id=test_type_id)
+            tests = test_type.tests.all().values("id", "name").order_by("name")
+            return JsonResponse(
+                {
+                    "status": "success",
+                    "message": "Tests for test type retrieved successfully",
+                    "data": list(tests),
+                },
+                safe=False,
+                status=status.HTTP_200_OK,
+            )
+        except TestType.DoesNotExist:
+            raise api_exception("Test type with the given ID does not exist.")
 
 
 class CreateReferralView(APIView):
@@ -71,6 +93,9 @@ class CreateReferralView(APIView):
     def post(self, request, *args, **kwargs):
         data = request.data
         user = self.request.user
+
+        if user.user_type != UserType.MEDICAL_PRACTITIONER.value:
+            raise api_exception("Only medical practitioners can create referrals.")
 
         serializer = CreateReferralSerializer(data=data, context={"user": user})
         if serializer.is_valid():
@@ -155,7 +180,10 @@ class GetAndUpdateReferralView(APIView):
                     "referral_id": referral.id,
                     "facility": referral.facility.name,
                     "patient_name_or_id": referral.patient.full_name_or_id,
-                    "test_type": referral.test_type.name,
+                    "test": referral.test.name,
+                    "test_type": referral.test.test_types.first().name
+                    if referral.test.test_types.exists()
+                    else None,
                     "referring_doctor": referral.referred_by.full_name,
                     "referred_at": referral.referred_at,
                     "status": referral.status,
@@ -191,16 +219,17 @@ class GetTechnicianReferralsView(APIView):
         referrals = Referral.objects.filter(facility__in=facilities).annotate(
             referral_id=F("id"),
             patient_name_or_id=F("patient__full_name_or_id"),
-            test_type_name=F("test_type__name"),
+            test_name=F("test__name"),
             facility_name=F("facility__name"),
             referral_doctor=F("referred_by__full_name"),
+            test_type_name=F("test__test_types__name"),
         )
 
         # Sorting map
         sort_map = {
             "time": "-referred_at" if sort_type == "desc" else "referred_at",
             "doctor": "-referral_doctor" if sort_type == "desc" else "referral_doctor",
-            "test_type": "-test_type_name" if sort_type == "desc" else "test_type_name",
+            "test": "-test_name" if sort_type == "desc" else "test_name",
         }
         referrals = referrals.order_by(sort_map.get(sort_by, "-referred_at"))
 
@@ -210,6 +239,7 @@ class GetTechnicianReferralsView(APIView):
             "status",
             "patient_name_or_id",
             "test_type_name",
+            "test_name",
             "facility_name",
             "clinical_notes",
             "referral_doctor",
@@ -269,13 +299,15 @@ class GetPractitionerReferralsView(APIView):
             .annotate(
                 referral_id=F("id"),
                 patient_name_or_id=F("patient__full_name_or_id"),
-                test_type_name=F("test_type__name"),
+                test_name=F("test__name"),
+                test_type_name=F("test__test_types__name"),
                 facility_name=F("facility__name"),
             )
             .values(
                 "referral_id",
                 "patient_name_or_id",
                 "test_type_name",
+                "test_name",
                 "facility_name",
                 "clinical_notes",
                 "status",

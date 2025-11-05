@@ -6,23 +6,30 @@ from medics.views.medics_views import (
     GetFacilitiesView,
     GetPractitionerReferralsView,
     GetTechnicianReferralsView,
-    GetTestTypesView,
+    GetTestsByTestTypeView,
+    GetTestTypesByFacilityView,
 )
 
 app_name = "medics"
 
 urlpatterns = [
+    # Get Test Types by Facility
+    path(
+        "facilities/<str:facility_id>/test-types",
+        GetTestTypesByFacilityView.as_view(),
+        name="get-test-types-by-facility",
+    ),
+    # Get Tests by Test Type
+    path(
+        "test-types/<str:test_type_id>/tests",
+        GetTestsByTestTypeView.as_view(),
+        name="get-tests-by-test-type",
+    ),
     # Get facilities
     path(
         "facilities",
         GetFacilitiesView.as_view(),
         name="get-facilities",
-    ),
-    # Get Test Types
-    path(
-        "test-types",
-        GetTestTypesView.as_view(),
-        name="get-test-types",
     ),
     # Create Referral
     path(

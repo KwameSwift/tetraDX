@@ -1,18 +1,18 @@
 from rest_framework import serializers
 
-from medics.models import Facility, Patient, Referral, TestStatus, TestType
+from medics.models import Facility, Patient, Referral, Test, TestStatus
 
 
 class CreateReferralSerializer(serializers.Serializer):
     patient_full_name_or_id = serializers.CharField(max_length=255, required=True)
     patient_contact_number = serializers.CharField(max_length=15, required=False)
-    test_type_id = serializers.IntegerField(required=True)
+    test_id = serializers.IntegerField(required=True)
     facility_id = serializers.IntegerField(required=True)
     clinical_notes = serializers.CharField(max_length=255, required=False)
 
     def validate(self, attrs):
         facility_id = attrs.get("facility_id")
-        test_type_id = attrs.get("test_type_id")
+        test_id = attrs.get("test_id")
 
         # Validate facility_id
         try:
@@ -22,20 +22,20 @@ class CreateReferralSerializer(serializers.Serializer):
                 {"facility_id": "Facility with the given ID does not exist."}
             )
 
-        # Validate test_type_id
-        try:
-            attrs["test_type"] = TestType.objects.get(id=test_type_id)
-        except TestType.DoesNotExist:
+        # Validate test_id
+        test = Test.objects.filter(id=test_id, test_types__facilities__id=facility_id)
+        if not test.exists():
             raise serializers.ValidationError(
-                {"test_type_id": "Test type with the given ID does not exist."}
+                {"test_id": "Test with the given ID does not exist."}
             )
+        attrs["test"] = test.first()
 
         return attrs
 
     def create(self, validated_data):
         patient_full_name_or_id = validated_data.get("patient_full_name_or_id", None)
         patient_contact_number = validated_data.get("patient_contact_number", None)
-        test_type = validated_data.get("test_type")
+        test = validated_data.get("test")
         facility = validated_data.get("facility")
         clinical_notes = validated_data.get("clinical_notes", None)
 
@@ -50,7 +50,7 @@ class CreateReferralSerializer(serializers.Serializer):
         # Create Referral
         referral = Referral.objects.create(
             patient=patient,
-            test_type=test_type,
+            test=test,
             facility=facility,
             clinical_notes=clinical_notes,
             referred_by=self.context["user"],
@@ -59,7 +59,8 @@ class CreateReferralSerializer(serializers.Serializer):
         return {
             "referral_id": referral.id,
             "patient_name_or_id": patient.full_name_or_id,
-            "test_type": test_type.name,
+            "test": test.name,
+            "test_name": test.name,
             "facility": facility.name,
             "referring_doctor": referral.referred_by.full_name,
             "referred_at": referral.referred_at,
@@ -98,7 +99,10 @@ class UpdateReferralStatusSerializer(serializers.Serializer):
             "referral_id": instance.id,
             "facility": instance.facility.name,
             "patient_name_or_id": instance.patient.full_name_or_id,
-            "test_type": instance.test_type.name,
+            "test": instance.test.name,
+            "test_type": instance.test.test_types.first().name
+            if instance.test.test_types.exists()
+            else None,
             "referring_doctor": instance.referred_by.full_name,
             "referred_at": instance.referred_at,
             "status": instance.status,

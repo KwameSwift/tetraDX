@@ -2,7 +2,7 @@ from django.contrib.auth import get_user_model
 from django.urls import reverse_lazy
 
 from _tetradx import BaseTestCase
-from medics.models import Facility, TestType
+from medics.models import Facility, Test, TestType
 
 User = get_user_model()
 
@@ -26,6 +26,9 @@ class CreateReferralTestCase(BaseTestCase):
         self.facility = Facility.objects.create(name="Test Lab")
         self.facility.users.add(self.test_user)
         self.test_type = TestType.objects.create(name="Blood Test")
+        self.test = Test.objects.create(name="Complete Blood Count")
+        self.test.test_types.add(self.test_type)
+        self.facility.test_types.add(self.test_type)
 
         # Login to get token
         login_data = {"phone_number": "1234567890"}
@@ -42,7 +45,7 @@ class CreateReferralTestCase(BaseTestCase):
         referral_data = {
             "patient_full_name_or_id": "John Doe",
             "patient_contact_number": "0987654321",
-            "test_type_id": self.test_type.id,
+            "test_id": self.test.id,
             "facility_id": self.facility.id,
             "clinical_notes": "Test notes",
         }
@@ -87,7 +90,7 @@ class CreateReferralTestCase(BaseTestCase):
 
         referral_data = {
             "patient_full_name_or_id": "John Doe",
-            "test_type_id": self.test_type.id,
+            "test_id": self.test.id,
             "facility_id": 999,  # Invalid ID
         }
 
@@ -107,7 +110,7 @@ class CreateReferralTestCase(BaseTestCase):
         referral_data = {
             "patient_full_name_or_id": "John Doe",
             "facility_id": self.facility.id,
-            "test_type_id": 999,  # Invalid ID
+            "test_id": 999,  # Invalid ID
         }
 
         response = self.client.post(
@@ -122,3 +125,4 @@ class CreateReferralTestCase(BaseTestCase):
         User.objects.all().delete()
         Facility.objects.all().delete()
         TestType.objects.all().delete()
+        Test.objects.all().delete()

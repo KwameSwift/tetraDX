@@ -1,19 +1,19 @@
 from django.contrib import admin
 
 # Test Type administration
-from medics.models import Facility, Referral, TestType
+from medics.models import Facility, Referral, Test, TestType
 
 
 @admin.register(TestType)
 class TestTypeAdmin(admin.ModelAdmin):
-    list_display = ("id", "name", "description", "created_at")
+    list_display = ("name", "description", "created_at")
     search_fields = ("name",)
     ordering = ("-created_at",)
 
 
 @admin.register(Facility)
 class FacilityAdmin(admin.ModelAdmin):
-    list_display = ("id", "name", "contact_number", "created_at")
+    list_display = ("name", "contact_number", "created_at")
     search_fields = ("name",)
     ordering = ("-created_at",)
 
@@ -54,3 +54,9 @@ class ReferralAdmin(admin.ModelAdmin):
 
     def patient_id(self, obj):
         return obj.patient.patient_id
+
+
+@admin.register(Test)
+class TestAdmin(admin.ModelAdmin):
+    list_display = ("name", "description", "created_at")
+    search_fields = ("name",)

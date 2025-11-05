@@ -59,7 +59,9 @@ class CreateReferralSerializer(serializers.Serializer):
         return {
             "referral_id": referral.id,
             "patient_name_or_id": patient.full_name_or_id,
-            "test": test.name,
+            "test_type_name": test.test_types.first().name
+            if test.test_types.exists()
+            else None,
             "test_name": test.name,
             "facility": facility.name,
             "referring_doctor": referral.referred_by.full_name,

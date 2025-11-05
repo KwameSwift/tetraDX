@@ -62,7 +62,7 @@ class ReferralAdmin(admin.ModelAdmin):
         return obj.test.test_types.first().name
 
     def test_name(self, obj):
-        return obj.test.name
+        return obj.test.name if obj.test else None
 
     patient_name.short_description = "Patient Name / ID"
 

@@ -139,7 +139,7 @@ class Patient(models.Model):
         ordering = ["-created_at"]
 
     def __str__(self):
-        return f"Patient Name: {self.full_name_or_id}"
+        return self.full_name_or_id
 
 
 def generate_referral_id():
@@ -189,7 +189,7 @@ class Referral(models.Model):
         User,
         on_delete=models.CASCADE,
         related_name="referred_by",
-        help_text="User who referred the patient",
+        help_text="Doctor who referred the patient",
         null=True,
         blank=True,
     )

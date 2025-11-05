@@ -21,39 +21,46 @@ class FacilityAdmin(admin.ModelAdmin):
 @admin.register(Referral)
 class ReferralAdmin(admin.ModelAdmin):
     list_display = (
-        "id",
-        "patient_id",
+        "referral_id",
         "patient_name",
         "test_type",
+        "test_name",
         "facility",
         "referral_status",
         "referred_at",
     )
     readonly_fields = (
-        "id",
+        "referral_id",
         "patient",
         "facility",
-        "test_type",
+        "test",
         "referred_by",
         "clinical_notes",
     )
-    search_fields = ("patient_name", "facility_name", "test_type")
+    search_fields = ("patient_name", "facility_name", "test")
     ordering = ("-referred_at",)
 
     def referral_status(self, obj):
         return obj.status
 
+    def referral_id(self, obj):
+        return obj.id
+
     def patient_name(self, obj):
-        return obj.patient.full_name
+        return obj.patient.full_name_or_id
 
     def facility_name(self, obj):
         return obj.facility.name
 
     def test_type(self, obj):
-        return obj.test_type.name
+        return (
+            obj.test.test_types.first().name if obj.test.test_types.exists() else None
+        )
 
-    def patient_id(self, obj):
-        return obj.patient.patient_id
+    def test_name(self, obj):
+        return obj.test.name
+
+    patient_name.short_description = "Patient Name / ID"
 
 
 @admin.register(Test)

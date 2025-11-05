@@ -53,9 +53,13 @@ class ReferralAdmin(admin.ModelAdmin):
         return obj.facility.name
 
     def test_type(self, obj):
-        return (
-            obj.test.test_types.first().name if obj.test.test_types.exists() else None
-        )
+        test = obj.test
+        if not test:
+            return None
+        test_types = test.test_types.all()
+        if not test_types.exists():
+            return None
+        return obj.test.test_types.first().name
 
     def test_name(self, obj):
         return obj.test.name

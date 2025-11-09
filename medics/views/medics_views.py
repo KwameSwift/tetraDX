@@ -82,6 +82,24 @@ class GetTestsByTestTypeView(APIView):
             raise api_exception("Test type with the given ID does not exist.")
 
 
+class GetTestTypesView(APIView):
+    """
+    Retrieve all test types.
+    """
+
+    def get(self, request, *args, **kwargs):
+        test_types = TestType.objects.all().values("id", "name").order_by("name")
+        return JsonResponse(
+            {
+                "status": "success",
+                "message": "Test types retrieved successfully",
+                "data": list(test_types),
+            },
+            safe=False,
+            status=status.HTTP_200_OK,
+        )
+
+
 class CreateReferralView(APIView):
     """
     Create a new referral.

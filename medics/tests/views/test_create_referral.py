@@ -62,7 +62,7 @@ class CreateReferralTestCase(BaseTestCase):
         self.assertEqual(response["message"], "Referral created successfully")
         self.assertIn("data", response)
         self.assertEqual(response["data"]["patient_name_or_id"], "John Doe")
-        self.assertEqual(response["data"]["test_type"], "Blood Test")
+        self.assertEqual(response["data"]["test_type_name"], "Blood Test")
         self.assertEqual(response["data"]["facility"], "Test Lab")
 
     def test_create_referral_missing_fields(self):

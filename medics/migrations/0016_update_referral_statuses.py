@@ -4,10 +4,10 @@ from django.db import migrations
 
 
 def update_referral_statuses(apps, schema_editor):
-    Referral = apps.get_model('medics', 'Referral')
-    Referral.objects.filter(status='PENDING').update(status='Pending')
-    Referral.objects.filter(status='RECEIVED').update(status='Received')
-    Referral.objects.filter(status='COMPLETED').update(status='Completed')
+    Referral = apps.get_model("medics", "Referral")
+    Referral.objects.filter(status="PENDING").update(status="Pending")
+    Referral.objects.filter(status="RECEIVED").update(status="Received")
+    Referral.objects.filter(status="COMPLETED").update(status="Completed")
 
 
 class Migration(migrations.Migration):

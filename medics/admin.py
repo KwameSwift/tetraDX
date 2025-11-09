@@ -38,7 +38,12 @@ class ReferralAdmin(admin.ModelAdmin):
         "referred_by",
         "clinical_notes",
     )
-    search_fields = ("patient_name", "facility_name", "test__name")
+    search_fields = (
+        "patient__full_name_or_id",
+        "facility__name",
+        "test__name",
+        "test__test_types__name",
+    )
     list_filter = ("status", "referred_at", "facility__name")
     ordering = ("-referred_at",)
 

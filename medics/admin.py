@@ -24,24 +24,23 @@ class ReferralAdmin(admin.ModelAdmin):
         "referral_id",
         "patient_name",
         "test_type",
-        "test_name",
+        "test",
         "facility",
-        "referral_status",
+        "status_display",
         "referred_at",
     )
     readonly_fields = (
         "referral_id",
         "patient",
         "facility",
+        "test_type",
         "test",
         "referred_by",
         "clinical_notes",
     )
-    search_fields = ("patient_name", "facility_name", "test")
+    search_fields = ("patient_name", "facility_name", "test__name")
+    list_filter = ("status", "referred_at", "facility__name")
     ordering = ("-referred_at",)
-
-    def referral_status(self, obj):
-        return obj.status
 
     def referral_id(self, obj):
         return obj.id
@@ -61,8 +60,13 @@ class ReferralAdmin(admin.ModelAdmin):
             return None
         return obj.test.test_types.first().name
 
-    def test_name(self, obj):
+    def test(self, obj):
         return obj.test.name if obj.test else None
+
+    def status_display(self, obj):
+        return obj.get_status_display()
+
+    status_display.short_description = "Status"
 
     patient_name.short_description = "Patient Name / ID"
 

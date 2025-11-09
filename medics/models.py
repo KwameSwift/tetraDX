@@ -5,7 +5,6 @@ from enum import Enum
 from django.contrib.auth import get_user_model
 from django.db import models
 from django.utils import timezone
-from django.utils.translation import gettext_lazy as _
 
 User = get_user_model()
 
@@ -195,7 +194,7 @@ class Referral(models.Model):
     )
     status = models.CharField(
         max_length=10,
-        choices=[(_(status.name), _(status.value)) for status in TestStatus],
+        choices=[(status.value, status.value) for status in TestStatus],
         help_text="Status of the referral",
         default=TestStatus.PENDING.value,
     )

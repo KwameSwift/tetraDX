@@ -165,14 +165,6 @@ class Referral(models.Model):
         null=True,
         blank=True,
     )
-    test = models.ForeignKey(
-        Test,
-        on_delete=models.CASCADE,
-        related_name="test",
-        help_text="Type of test being referred",
-        null=True,
-        blank=True,
-    )
     patient = models.ForeignKey(
         Patient,
         on_delete=models.CASCADE,
@@ -207,3 +199,36 @@ class Referral(models.Model):
         verbose_name = "Referral"
         verbose_name_plural = "Referrals"
         ordering = ["-referred_at"]
+
+
+class ReferralTest(models.Model):
+    referral = models.ForeignKey(
+        Referral,
+        on_delete=models.CASCADE,
+        related_name="referral_tests",
+        help_text="Referral associated with the test",
+    )
+    test = models.ForeignKey(
+        Test,
+        on_delete=models.CASCADE,
+        related_name="referral_tests",
+        help_text="Test associated with the referral",
+    )
+    status = models.CharField(
+        max_length=10,
+        choices=[(status.value, status.value) for status in TestStatus],
+        help_text="Status of the referral test",
+        default=TestStatus.PENDING.value,
+    )
+    created_at = models.DateTimeField(
+        default=timezone.now, help_text="ReferralTest creation timestamp"
+    )
+
+    class Meta:
+        db_table = "ReferralTest"
+        verbose_name = "Referral Test"
+        verbose_name_plural = "Referral Tests"
+        unique_together = ("referral", "test")
+
+    def __str__(self):
+        return f"Referral {self.referral.id} - Test {self.test.name}"

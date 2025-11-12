@@ -2,7 +2,7 @@ from django.contrib.auth import get_user_model
 from django.urls import reverse_lazy
 
 from _tetradx import BaseTestCase
-from medics.models import Facility, Patient, Referral, Test, TestType
+from medics.models import Facility, Patient, Referral, ReferralTest, Test, TestType
 
 User = get_user_model()
 
@@ -43,9 +43,13 @@ class GetAndUpdateReferralTestCase(BaseTestCase):
         # Create referral
         self.referral = Referral.objects.create(
             patient=self.patient,
-            test=self.test,
             facility=self.facility,
             referred_by=self.test_user,
+        )
+        # Create ReferralTest to link the test to the referral
+        ReferralTest.objects.create(
+            referral=self.referral,
+            test=self.test,
         )
 
         # Login as test_user to get token
@@ -83,7 +87,8 @@ class GetAndUpdateReferralTestCase(BaseTestCase):
         self.assertEqual(response["message"], "Referral retrieved successfully")
         self.assertEqual(response["data"]["referral_id"], self.referral.id)
         self.assertEqual(response["data"]["patient_name_or_id"], "John Doe")
-        self.assertEqual(response["data"]["test_type"], "Blood Test")
+        self.assertEqual(len(response["data"]["tests"]), 1)
+        self.assertEqual(response["data"]["tests"][0]["test_type_name"], "Blood Test")
 
     def test_get_referral_success_by_facility_worker(self):
         """
@@ -156,7 +161,8 @@ class GetAndUpdateReferralTestCase(BaseTestCase):
         self.assertEqual(response["status"], "success")
         self.assertEqual(response["message"], "Referral status updated successfully")
         self.assertEqual(response["data"]["status"], "Received")
-        self.assertEqual(response["data"]["test_type"], "Blood Test")
+        self.assertEqual(len(response["data"]["tests"]), 1)
+        self.assertEqual(response["data"]["tests"][0]["test_type_name"], "Blood Test")
 
     def test_update_referral_status_invalid(self):
         """
@@ -182,3 +188,4 @@ class GetAndUpdateReferralTestCase(BaseTestCase):
         TestType.objects.all().delete()
         Patient.objects.all().delete()
         Referral.objects.all().delete()
+        ReferralTest.objects.all().delete()

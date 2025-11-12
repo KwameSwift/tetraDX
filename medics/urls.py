@@ -9,6 +9,7 @@ from medics.views.medics_views import (
     GetTestsByTestTypeView,
     GetTestTypesByFacilityView,
     GetTestTypesView,
+    UpdateTestStatusView,
 )
 
 app_name = "medics"
@@ -59,5 +60,10 @@ urlpatterns = [
         "referrals/technician",
         GetTechnicianReferralsView.as_view(),
         name="get-technician-referrals",
+    ),
+    path(
+        "referral-tests/<str:referral_test_id>/status",
+        UpdateTestStatusView.as_view(),
+        name="update-test-status",
     ),
 ]

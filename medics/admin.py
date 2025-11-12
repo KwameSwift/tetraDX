@@ -1,7 +1,7 @@
 from django.contrib import admin
 
 # Test Type administration
-from medics.models import Facility, Referral, Test, TestType
+from medics.models import Facility, Referral, ReferralTest, Test, TestType
 
 
 @admin.register(TestType)
@@ -23,8 +23,8 @@ class ReferralAdmin(admin.ModelAdmin):
     list_display = (
         "referral_id",
         "patient_name",
-        "test_type",
-        "test",
+        "test_types",
+        "tests",
         "facility",
         "status_display",
         "referred_at",
@@ -33,16 +33,16 @@ class ReferralAdmin(admin.ModelAdmin):
         "referral_id",
         "patient",
         "facility",
-        "test_type",
-        "test",
+        "test_types",
+        "tests",
         "referred_by",
         "clinical_notes",
     )
     search_fields = (
         "patient__full_name_or_id",
         "facility__name",
-        "test__name",
-        "test__test_types__name",
+        "referral_tests__test__name",
+        "referral_tests__test__test_types__name",
     )
     list_filter = ("status", "referred_at", "facility__name")
     ordering = ("-referred_at",)
@@ -56,22 +56,23 @@ class ReferralAdmin(admin.ModelAdmin):
     def facility_name(self, obj):
         return obj.facility.name
 
-    def test_type(self, obj):
-        test = obj.test
-        if not test:
-            return None
-        test_types = test.test_types.all()
-        if not test_types.exists():
-            return None
-        return obj.test.test_types.first().name
+    def test_types(self, obj):
+        test_types = set()
+        for referral_test in obj.referral_tests.all():
+            for test_type in referral_test.test.test_types.all():
+                test_types.add(test_type.name)
+        return ", ".join(sorted(test_types)) if test_types else None
 
-    def test(self, obj):
-        return obj.test.name if obj.test else None
+    def tests(self, obj):
+        test_names = [rt.test.name for rt in obj.referral_tests.all()]
+        return ", ".join(sorted(test_names)) if test_names else None
 
     def status_display(self, obj):
         return obj.get_status_display()
 
     status_display.short_description = "Status"
+    test_types.short_description = "Test Types"
+    tests.short_description = "Tests"
 
     patient_name.short_description = "Patient Name / ID"
 
@@ -80,3 +81,57 @@ class ReferralAdmin(admin.ModelAdmin):
 class TestAdmin(admin.ModelAdmin):
     list_display = ("name", "description", "created_at")
     search_fields = ("name",)
+
+
+@admin.register(ReferralTest)
+class ReferralTestAdmin(admin.ModelAdmin):
+    list_display = (
+        "referral_id",
+        "facility_name",
+        "test_name",
+        "test_type_name",
+        "status_display",
+        "created_at",
+    )
+    readonly_fields = (
+        "referral",
+        "test",
+        "created_at",
+    )
+    search_fields = (
+        "referral__id",
+        "referral__facility__name",
+        "test__name",
+        "test__test_types__name",
+    )
+    list_filter = (
+        "status",
+        "created_at",
+        "test__test_types__name",
+        "referral__facility__name",
+    )
+    ordering = ("-created_at",)
+
+    def referral_id(self, obj):
+        return obj.referral.id
+
+    def facility_name(self, obj):
+        return obj.referral.facility.name
+
+    def test_name(self, obj):
+        return obj.test.name
+
+    def test_type_name(self, obj):
+        test_types = obj.test.test_types.all()
+        if test_types.exists():
+            return test_types.first().name
+        return None
+
+    def status_display(self, obj):
+        return obj.get_status_display()
+
+    referral_id.short_description = "Referral ID"
+    facility_name.short_description = "Facility"
+    test_name.short_description = "Test Name"
+    test_type_name.short_description = "Test Type"
+    status_display.short_description = "Status"

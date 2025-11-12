@@ -3,7 +3,7 @@ from django.urls import reverse_lazy
 
 from _tetradx import BaseTestCase
 from authentication.models import UserType
-from medics.models import Facility, Patient, Referral, Test, TestType
+from medics.models import Facility, Patient, Referral, ReferralTest, Test, TestType
 
 User = get_user_model()
 
@@ -39,9 +39,15 @@ class GetPractitionerReferralsTestCase(BaseTestCase):
         # Create referral by the practitioner
         self.referral = Referral.objects.create(
             patient=self.patient,
-            test=self.test,
             facility=self.facility,
             referred_by=self.practitioner_user,
+        )
+        # Create ReferralTest to link the test to the referral
+        from medics.models import ReferralTest
+
+        ReferralTest.objects.create(
+            referral=self.referral,
+            test=self.test,
         )
 
         # Login to get token
@@ -71,8 +77,9 @@ class GetPractitionerReferralsTestCase(BaseTestCase):
         # Check that test_type_name is included in the referral data
         self.assertGreater(len(response["data"]["referrals"]), 0)
         referral = response["data"]["referrals"][0]
-        self.assertIn("test_type_name", referral)
-        self.assertEqual(referral["test_type_name"], "Blood Test")
+        self.assertIn("tests", referral)
+        self.assertGreater(len(referral["tests"]), 0)
+        self.assertEqual(referral["tests"][0]["test_type_name"], "Blood Test")
 
     def test_get_practitioner_referrals_unauthorized_user_type(self):
         """
@@ -104,3 +111,4 @@ class GetPractitionerReferralsTestCase(BaseTestCase):
         TestType.objects.all().delete()
         Patient.objects.all().delete()
         Referral.objects.all().delete()
+        ReferralTest.objects.all().delete()

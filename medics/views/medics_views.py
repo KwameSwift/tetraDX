@@ -11,7 +11,7 @@ from rest_framework_simplejwt.authentication import JWTAuthentication
 
 from _tetradx.helpers import api_exception
 from authentication.models import UserType
-from medics.models import Facility, Referral, TestStatus, TestType
+from medics.models import Facility, Referral, ReferralTest, TestStatus, TestType
 from medics.serializers import CreateReferralSerializer, UpdateReferralStatusSerializer
 
 logger = logging.getLogger(__name__)
@@ -190,6 +190,9 @@ class GetAndUpdateReferralView(APIView):
         except Referral.DoesNotExist:
             raise api_exception("Referral with the given ID does not exist.")
 
+        # Get tests associated with the referral
+        referral_tests = ReferralTest.objects.filter(referral=referral)
+
         return JsonResponse(
             {
                 "status": "success",
@@ -198,13 +201,21 @@ class GetAndUpdateReferralView(APIView):
                     "referral_id": referral.id,
                     "facility": referral.facility.name,
                     "patient_name_or_id": referral.patient.full_name_or_id,
-                    "test": referral.test.name,
-                    "test_type": referral.test.test_types.first().name
-                    if referral.test.test_types.exists()
-                    else None,
                     "referring_doctor": referral.referred_by.full_name,
                     "referred_at": referral.referred_at,
                     "status": referral.status,
+                    "tests": [
+                        {
+                            "test_id": rt.id,
+                            "test_name": rt.test.name,
+                            "test_type_name": rt.test.test_types.first().name
+                            if rt.test.test_types.exists()
+                            else None,
+                            "status": rt.status,
+                            "created_at": rt.created_at,
+                        }
+                        for rt in referral_tests
+                    ],
                 },
             },
             safe=False,
@@ -237,17 +248,14 @@ class GetTechnicianReferralsView(APIView):
         referrals = Referral.objects.filter(facility__in=facilities).annotate(
             referral_id=F("id"),
             patient_name_or_id=F("patient__full_name_or_id"),
-            test_name=F("test__name"),
             facility_name=F("facility__name"),
             referral_doctor=F("referred_by__full_name"),
-            test_type_name=F("test__test_types__name"),
         )
 
         # Sorting map
         sort_map = {
             "time": "-referred_at" if sort_type == "desc" else "referred_at",
             "doctor": "-referral_doctor" if sort_type == "desc" else "referral_doctor",
-            "test": "-test_name" if sort_type == "desc" else "test_name",
         }
         referrals = referrals.order_by(sort_map.get(sort_by, "-referred_at"))
 
@@ -256,13 +264,29 @@ class GetTechnicianReferralsView(APIView):
             "referral_id",
             "status",
             "patient_name_or_id",
-            "test_type_name",
-            "test_name",
             "facility_name",
             "clinical_notes",
             "referral_doctor",
             "referred_at",
         )
+
+        # Get referral tests for each referral
+        for referral in referrals:
+            referral_tests = ReferralTest.objects.filter(
+                referral_id=referral["referral_id"]
+            )
+            referral["tests"] = [
+                {
+                    "test_id": rt.id,
+                    "test_name": rt.test.name,
+                    "test_type_name": rt.test.test_types.first().name
+                    if rt.test.test_types.exists()
+                    else None,
+                    "status": rt.status,
+                    "created_at": rt.created_at,
+                }
+                for rt in referral_tests
+            ]
 
         # Paginate referrals
         paginator = Paginator(referrals, int(page_size))
@@ -317,15 +341,11 @@ class GetPractitionerReferralsView(APIView):
             .annotate(
                 referral_id=F("id"),
                 patient_name_or_id=F("patient__full_name_or_id"),
-                test_name=F("test__name"),
-                test_type_name=F("test__test_types__name"),
                 facility_name=F("facility__name"),
             )
             .values(
                 "referral_id",
                 "patient_name_or_id",
-                "test_type_name",
-                "test_name",
                 "facility_name",
                 "clinical_notes",
                 "status",
@@ -333,6 +353,24 @@ class GetPractitionerReferralsView(APIView):
             )
             .order_by("-referred_at")
         )
+
+        # Get referral tests for each referral
+        for referral in referrals:
+            referral_tests = ReferralTest.objects.filter(
+                referral_id=referral["referral_id"]
+            )
+            referral["tests"] = [
+                {
+                    "test_id": rt.id,
+                    "test_name": rt.test.name,
+                    "test_type_name": rt.test.test_types.first().name
+                    if rt.test.test_types.exists()
+                    else None,
+                    "status": rt.status,
+                    "created_at": rt.created_at,
+                }
+                for rt in referral_tests
+            ]
 
         data_summary = {
             "total_referrals": referrals.count(),
@@ -376,3 +414,59 @@ class GetPractitionerReferralsView(APIView):
             safe=False,
             status=status.HTTP_200_OK,
         )
+
+
+class UpdateTestStatusView(APIView):
+    """
+    Update the status of a test within a referral.
+    """
+
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def put(self, request, *args, **kwargs):
+        referral_test_id = kwargs.get("referral_test_id")
+        new_status = request.data.get("status")
+        user = request.user
+
+        try:
+            referral_test = ReferralTest.objects.get(id=referral_test_id)
+            referral = referral_test.referral
+
+            # Check permissions
+            is_doctor = referral.referred_by == user
+            is_facility_worker = referral.facility in user.facilities.all()
+
+            if not is_doctor and not is_facility_worker:
+                raise api_exception(
+                    "You do not have permission to update this test status."
+                )
+
+            # Validate new status
+            valid_statuses = [test_status.value for test_status in TestStatus]
+            if new_status not in valid_statuses:
+                raise api_exception("Invalid status value.")
+
+            # Update status
+            referral_test.status = new_status
+            referral_test.save()
+
+            return JsonResponse(
+                {
+                    "status": "success",
+                    "message": "Test status updated successfully",
+                    "data": {
+                        "referral_id": referral_test.referral.id,
+                        "test_id": referral_test.id,
+                        "test_name": referral_test.test.name,
+                        "test_type_name": referral_test.test.test_types.first().name
+                        if referral_test.test.test_types.exists()
+                        else None,
+                        "status": referral_test.status,
+                    },
+                },
+                status=status.HTTP_200_OK,
+            )
+
+        except ReferralTest.DoesNotExist:
+            raise api_exception("Referral test with the given ID does not exist.")

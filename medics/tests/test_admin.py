@@ -3,7 +3,7 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase
 
 from medics.admin import ReferralAdmin
-from medics.models import Facility, Patient, Referral, Test, TestType
+from medics.models import Facility, Patient, Referral, ReferralTest, Test, TestType
 
 User = get_user_model()
 
@@ -35,10 +35,16 @@ class ReferralAdminTestCase(TestCase):
         )
         self.referral = Referral.objects.create(
             patient=self.patient,
-            test=self.test,
             facility=self.facility,
             referred_by=self.user,
             status="Pending",
+        )
+        # Create ReferralTest to link the test to the referral
+        from medics.models import ReferralTest
+
+        ReferralTest.objects.create(
+            referral=self.referral,
+            test=self.test,
         )
 
     def test_list_display(self):
@@ -48,8 +54,8 @@ class ReferralAdminTestCase(TestCase):
         expected = (
             "referral_id",
             "patient_name",
-            "test_type",
-            "test",
+            "test_types",
+            "tests",
             "facility",
             "status_display",
             "referred_at",
@@ -64,8 +70,8 @@ class ReferralAdminTestCase(TestCase):
             "referral_id",
             "patient",
             "facility",
-            "test_type",
-            "test",
+            "test_types",
+            "tests",
             "referred_by",
             "clinical_notes",
         )
@@ -78,8 +84,8 @@ class ReferralAdminTestCase(TestCase):
         expected = (
             "patient__full_name_or_id",
             "facility__name",
-            "test__name",
-            "test__test_types__name",
+            "referral_tests__test__name",
+            "referral_tests__test__test_types__name",
         )
         self.assertEqual(self.admin.search_fields, expected)
 
@@ -112,17 +118,17 @@ class ReferralAdminTestCase(TestCase):
             self.referral.patient.full_name_or_id,
         )
 
-    def test_test_type_method(self):
+    def test_test_types_method(self):
         """
-        Test the test_type method.
+        Test the test_types method.
         """
-        self.assertEqual(self.admin.test_type(self.referral), "Blood Test")
+        self.assertEqual(self.admin.test_types(self.referral), "Blood Test")
 
-    def test_test_method(self):
+    def test_tests_method(self):
         """
-        Test the test method.
+        Test the tests method.
         """
-        self.assertEqual(self.admin.test(self.referral), self.referral.test.name)
+        self.assertEqual(self.admin.tests(self.referral), "Complete Blood Count")
 
     def test_status_display_method(self):
         """
@@ -137,3 +143,4 @@ class ReferralAdminTestCase(TestCase):
         Test.objects.all().delete()
         Patient.objects.all().delete()
         Referral.objects.all().delete()
+        ReferralTest.objects.all().delete()

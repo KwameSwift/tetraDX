@@ -1,18 +1,18 @@
 from rest_framework import serializers
 
-from medics.models import Facility, Patient, Referral, Test, TestStatus
+from medics.models import Facility, Patient, Referral, ReferralTest, Test, TestStatus
 
 
 class CreateReferralSerializer(serializers.Serializer):
     patient_full_name_or_id = serializers.CharField(max_length=255, required=True)
     patient_contact_number = serializers.CharField(max_length=15, required=False)
-    test_id = serializers.IntegerField(required=True)
+    tests = serializers.ListField(child=serializers.IntegerField(), required=True)
     facility_id = serializers.IntegerField(required=True)
     clinical_notes = serializers.CharField(max_length=255, required=False)
 
     def validate(self, attrs):
         facility_id = attrs.get("facility_id")
-        test_id = attrs.get("test_id")
+        tests = attrs.get("tests")
 
         # Validate facility_id
         try:
@@ -23,19 +23,21 @@ class CreateReferralSerializer(serializers.Serializer):
             )
 
         # Validate test_id
-        test = Test.objects.filter(id=test_id, test_types__facilities__id=facility_id)
-        if not test.exists():
+        referral_tests = Test.objects.filter(
+            id__in=tests, test_types__facilities__id=facility_id
+        )
+        if not referral_tests.exists():
             raise serializers.ValidationError(
                 {"test_id": "Test with the given ID does not exist."}
             )
-        attrs["test"] = test.first()
+        attrs["tests"] = referral_tests
 
         return attrs
 
     def create(self, validated_data):
         patient_full_name_or_id = validated_data.get("patient_full_name_or_id", None)
         patient_contact_number = validated_data.get("patient_contact_number", None)
-        test = validated_data.get("test")
+        tests = validated_data.get("tests", [])
         facility = validated_data.get("facility")
         clinical_notes = validated_data.get("clinical_notes", None)
 
@@ -50,23 +52,37 @@ class CreateReferralSerializer(serializers.Serializer):
         # Create Referral
         referral = Referral.objects.create(
             patient=patient,
-            test=test,
             facility=facility,
             clinical_notes=clinical_notes,
             referred_by=self.context["user"],
         )
+        # Create ReferralTest entries
+        referral_tests = []
+        for test in tests:
+            referral_test = ReferralTest.objects.create(referral=referral, test=test)
+            referral_tests.append(referral_test)
+
+        # Prepare response data
 
         return {
             "referral_id": referral.id,
             "patient_name_or_id": patient.full_name_or_id,
-            "test_type_name": test.test_types.first().name
-            if test.test_types.exists()
-            else None,
-            "test_name": test.name,
             "facility": facility.name,
             "referring_doctor": referral.referred_by.full_name,
             "referred_at": referral.referred_at,
             "status": referral.status,
+            "tests": [
+                {
+                    "test_id": rt.id,
+                    "test_name": rt.test.name,
+                    "test_type_name": rt.test.test_types.first().name
+                    if rt.test.test_types.exists()
+                    else None,
+                    "status": rt.status,
+                    "created_at": rt.created_at,
+                }
+                for rt in referral_tests
+            ],
         }
 
 
@@ -97,15 +113,27 @@ class UpdateReferralStatusSerializer(serializers.Serializer):
         instance.status = validated_data.get("status", instance.status)
         instance.save()
 
+        # Get referral tests
+        referral_tests = ReferralTest.objects.filter(referral=instance)
+        tests_data = [
+            {
+                "test_id": rt.id,
+                "test_name": rt.test.name,
+                "test_type_name": rt.test.test_types.first().name
+                if rt.test.test_types.exists()
+                else None,
+                "status": rt.status,
+                "created_at": rt.created_at,
+            }
+            for rt in referral_tests
+        ]
+
         return {
             "referral_id": instance.id,
             "facility": instance.facility.name,
             "patient_name_or_id": instance.patient.full_name_or_id,
-            "test": instance.test.name,
-            "test_type": instance.test.test_types.first().name
-            if instance.test.test_types.exists()
-            else None,
             "referring_doctor": instance.referred_by.full_name,
             "referred_at": instance.referred_at,
             "status": instance.status,
+            "tests": tests_data,
         }

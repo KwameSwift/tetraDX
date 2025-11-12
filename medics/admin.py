@@ -29,15 +29,7 @@ class ReferralAdmin(admin.ModelAdmin):
         "status_display",
         "referred_at",
     )
-    readonly_fields = (
-        "referral_id",
-        "patient",
-        "facility",
-        "test_types",
-        "tests",
-        "referred_by",
-        "clinical_notes",
-    )
+
     search_fields = (
         "patient__full_name_or_id",
         "facility__name",
@@ -91,11 +83,6 @@ class ReferralTestAdmin(admin.ModelAdmin):
         "test_name",
         "test_type_name",
         "status_display",
-        "created_at",
-    )
-    readonly_fields = (
-        "referral",
-        "test",
         "created_at",
     )
     search_fields = (

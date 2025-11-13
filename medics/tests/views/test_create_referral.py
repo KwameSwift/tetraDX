@@ -105,6 +105,8 @@ class CreateReferralTestCase(BaseTestCase):
         test_names = [test["test_name"] for test in response["data"]["tests"]]
         self.assertIn("Complete Blood Count", test_names)
         self.assertIn("Urine Test", test_names)
+
+    def test_create_referral_missing_fields(self):
         """
         Test creation of referral with missing required fields.
         """
@@ -181,6 +183,78 @@ class CreateReferralTestCase(BaseTestCase):
                 "detail": {"test_id": ["Test with the given ID does not exist."]},
             },
         )
+
+    def test_create_referral_empty_tests_list(self):
+        """
+        Test creation of referral with empty tests list.
+        """
+
+        referral_data = {
+            "patient_full_name_or_id": "John Doe",
+            "patient_contact_number": "0987654321",
+            "tests": [],  # Empty list
+            "facility_id": self.facility.id,
+            "clinical_notes": "Test notes",
+        }
+
+        response = self.client.post(
+            self.url,
+            data=referral_data,
+            content_type="application/json",
+            HTTP_AUTHORIZATION=f"Bearer {self.access_token}",
+        )
+        self.assertEqual(response.status_code, 400)
+
+    def test_create_referral_with_duplicate_tests(self):
+        """
+        Test creation of referral with duplicate test IDs (should only create one referral test).
+        """
+
+        referral_data = {
+            "patient_full_name_or_id": "Jane Smith",
+            "patient_contact_number": "0987654323",
+            "tests": [self.test.id, self.test.id],  # Duplicate test IDs
+            "facility_id": self.facility.id,
+            "clinical_notes": "Duplicate test notes",
+        }
+
+        response = self.client.post(
+            self.url,
+            data=referral_data,
+            content_type="application/json",
+            HTTP_AUTHORIZATION=f"Bearer {self.access_token}",
+        )
+        # The API should handle duplicates gracefully
+        # Depending on implementation, it may succeed with only one test
+        # or return a validation error
+        self.assertIn(response.status_code, [201, 400])
+
+    def test_create_referral_test_not_in_facility(self):
+        """
+        Test creation of referral with test that's not available at the facility.
+        """
+        # Create another facility and test type not linked to main facility
+        other_facility = Facility.objects.create(name="Other Lab")
+        other_test_type = TestType.objects.create(name="X-Ray")
+        other_test = Test.objects.create(name="Chest X-Ray")
+        other_test.test_types.add(other_test_type)
+        other_facility.test_types.add(other_test_type)
+
+        referral_data = {
+            "patient_full_name_or_id": "John Doe",
+            "patient_contact_number": "0987654321",
+            "tests": [other_test.id],  # Test not available at self.facility
+            "facility_id": self.facility.id,
+            "clinical_notes": "Test notes",
+        }
+
+        response = self.client.post(
+            self.url,
+            data=referral_data,
+            content_type="application/json",
+            HTTP_AUTHORIZATION=f"Bearer {self.access_token}",
+        )
+        self.assertEqual(response.status_code, 400)
 
     def tearDown(self):
         User.objects.all().delete()

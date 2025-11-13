@@ -2,6 +2,7 @@ import logging
 
 from django.contrib.auth import get_user_model
 from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
+from django.db.models import Q
 from django.http import JsonResponse
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
@@ -241,6 +242,7 @@ class GetTechnicianReferralsView(APIView):
         sort_type = request.GET.get("sort_type", "desc")
         page_number = request.GET.get("page_number", 1)
         page_size = request.GET.get("page_size", 10)
+        search_query = request.GET.get("search_query", "")
         user = request.user
 
         if not user.user_type == UserType.LAB_TECHNICIAN.value:
@@ -255,6 +257,16 @@ class GetTechnicianReferralsView(APIView):
             .select_related("patient", "facility", "referred_by")
             .prefetch_related("referral_tests__test__test_types")
         )
+
+        # Apply search filters
+        if search_query:
+            referrals_qs = referrals_qs.filter(
+                Q(patient__full_name_or_id__icontains=search_query)
+                | Q(facility__name__icontains=search_query)
+                | Q(referred_by__full_name__icontains=search_query)
+                | Q(referral_tests__test__name__icontains=search_query)
+                | Q(referral_tests__test__test_types__name__icontains=search_query)
+            ).distinct()
 
         # Sorting map
         sort_map = {
@@ -334,6 +346,7 @@ class GetPractitionerReferralsView(APIView):
     def get(self, request, *args, **kwargs):
         page_number = request.GET.get("page_number", 1)
         page_size = request.GET.get("page_size", 10)
+        search_query = request.GET.get("search_query", "")
         user = request.user
 
         if not user.user_type == UserType.MEDICAL_PRACTITIONER.value:
@@ -346,6 +359,16 @@ class GetPractitionerReferralsView(APIView):
             .prefetch_related("referral_tests__test__test_types")
             .order_by("-referred_at")
         )
+
+        # Apply search filters
+        if search_query:
+            referrals_qs = referrals_qs.filter(
+                Q(patient__full_name_or_id__icontains=search_query)
+                | Q(facility__name__icontains=search_query)
+                | Q(referred_by__full_name__icontains=search_query)
+                | Q(referral_tests__test__name__icontains=search_query)
+                | Q(referral_tests__test__test_types__name__icontains=search_query)
+            ).distinct()
 
         # Calculate summary statistics before converting to list
         total_referrals = referrals_qs.count()

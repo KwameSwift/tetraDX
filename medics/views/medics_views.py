@@ -2,7 +2,6 @@ import logging
 
 from django.contrib.auth import get_user_model
 from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
-from django.db.models import F
 from django.http import JsonResponse
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
@@ -182,7 +181,9 @@ class GetAndUpdateReferralView(APIView):
         user = request.user
 
         try:
-            referral = Referral.objects.get(id=referral_id)
+            referral = Referral.objects.select_related(
+                "facility", "patient", "referred_by"
+            ).get(id=referral_id)
             is_doctor = referral.referred_by == user
             is_facility_worker = referral.facility in user.facilities.all()
             if not is_doctor and not is_facility_worker:
@@ -191,7 +192,11 @@ class GetAndUpdateReferralView(APIView):
             raise api_exception("Referral with the given ID does not exist.")
 
         # Get tests associated with the referral
-        referral_tests = ReferralTest.objects.filter(referral=referral)
+        referral_tests = (
+            ReferralTest.objects.filter(referral=referral)
+            .select_related("test")
+            .prefetch_related("test__test_types")
+        )
 
         return JsonResponse(
             {
@@ -244,49 +249,47 @@ class GetTechnicianReferralsView(APIView):
         # Get all facilities the user is linked to
         facilities = user.facilities.all()
 
-        # Base queryset
-        referrals = Referral.objects.filter(facility__in=facilities).annotate(
-            referral_id=F("id"),
-            patient_name_or_id=F("patient__full_name_or_id"),
-            facility_name=F("facility__name"),
-            referral_doctor=F("referred_by__full_name"),
+        # Base queryset with optimized select/prefetch
+        referrals_qs = (
+            Referral.objects.filter(facility__in=facilities)
+            .select_related("patient", "facility", "referred_by")
+            .prefetch_related("referral_tests__test__test_types")
         )
 
         # Sorting map
         sort_map = {
             "time": "-referred_at" if sort_type == "desc" else "referred_at",
-            "doctor": "-referral_doctor" if sort_type == "desc" else "referral_doctor",
+            "doctor": "-referred_by__full_name"
+            if sort_type == "desc"
+            else "referred_by__full_name",
         }
-        referrals = referrals.order_by(sort_map.get(sort_by, "-referred_at"))
+        referrals_qs = referrals_qs.order_by(sort_map.get(sort_by, "-referred_at"))
 
-        # Project to dicts
-        referrals = referrals.values(
-            "referral_id",
-            "status",
-            "patient_name_or_id",
-            "facility_name",
-            "clinical_notes",
-            "referral_doctor",
-            "referred_at",
-        )
-
-        # Get referral tests for each referral
-        for referral in referrals:
-            referral_tests = ReferralTest.objects.filter(
-                referral_id=referral["referral_id"]
-            )
-            referral["tests"] = [
-                {
-                    "test_id": rt.id,
-                    "test_name": rt.test.name,
-                    "test_type_name": rt.test.test_types.first().name
-                    if rt.test.test_types.exists()
-                    else None,
-                    "status": rt.status,
-                    "created_at": rt.created_at,
-                }
-                for rt in referral_tests
-            ]
+        # Convert to list with all data preloaded
+        referrals = [
+            {
+                "referral_id": ref.id,
+                "status": ref.status,
+                "patient_name_or_id": ref.patient.full_name_or_id,
+                "facility_name": ref.facility.name,
+                "clinical_notes": ref.clinical_notes,
+                "referral_doctor": ref.referred_by.full_name,
+                "referred_at": ref.referred_at,
+                "tests": [
+                    {
+                        "test_id": rt.id,
+                        "test_name": rt.test.name,
+                        "test_type_name": rt.test.test_types.first().name
+                        if rt.test.test_types.exists()
+                        else None,
+                        "status": rt.status,
+                        "created_at": rt.created_at,
+                    }
+                    for rt in ref.referral_tests.all()
+                ],
+            }
+            for ref in referrals_qs
+        ]
 
         # Paginate referrals
         paginator = Paginator(referrals, int(page_size))
@@ -336,52 +339,51 @@ class GetPractitionerReferralsView(APIView):
         if not user.user_type == UserType.MEDICAL_PRACTITIONER.value:
             raise api_exception("You do not have permission to view these referrals.")
 
-        referrals = (
+        # Get referrals with optimized queries
+        referrals_qs = (
             Referral.objects.filter(referred_by=user)
-            .annotate(
-                referral_id=F("id"),
-                patient_name_or_id=F("patient__full_name_or_id"),
-                facility_name=F("facility__name"),
-            )
-            .values(
-                "referral_id",
-                "patient_name_or_id",
-                "facility_name",
-                "clinical_notes",
-                "status",
-                "referred_at",
-            )
+            .select_related("patient", "facility", "referred_by")
+            .prefetch_related("referral_tests__test__test_types")
             .order_by("-referred_at")
         )
 
-        # Get referral tests for each referral
-        for referral in referrals:
-            referral_tests = ReferralTest.objects.filter(
-                referral_id=referral["referral_id"]
-            )
-            referral["tests"] = [
-                {
-                    "test_id": rt.id,
-                    "test_name": rt.test.name,
-                    "test_type_name": rt.test.test_types.first().name
-                    if rt.test.test_types.exists()
-                    else None,
-                    "status": rt.status,
-                    "created_at": rt.created_at,
-                }
-                for rt in referral_tests
-            ]
+        # Calculate summary statistics before converting to list
+        total_referrals = referrals_qs.count()
+        total_completed = referrals_qs.filter(status=TestStatus.COMPLETED.value).count()
+        total_pending = referrals_qs.filter(status=TestStatus.PENDING.value).count()
+        total_received = referrals_qs.filter(status=TestStatus.RECEIVED.value).count()
 
         data_summary = {
-            "total_referrals": referrals.count(),
-            "total_completed": referrals.filter(
-                status=TestStatus.COMPLETED.value
-            ).count(),
-            "total_pending": referrals.filter(status=TestStatus.PENDING.value).count(),
-            "total_received": referrals.filter(
-                status=TestStatus.RECEIVED.value
-            ).count(),
+            "total_referrals": total_referrals,
+            "total_completed": total_completed,
+            "total_pending": total_pending,
+            "total_received": total_received,
         }
+
+        # Convert to list with all data preloaded
+        referrals = [
+            {
+                "referral_id": ref.id,
+                "patient_name_or_id": ref.patient.full_name_or_id,
+                "facility_name": ref.facility.name,
+                "clinical_notes": ref.clinical_notes,
+                "status": ref.status,
+                "referred_at": ref.referred_at,
+                "tests": [
+                    {
+                        "test_id": rt.id,
+                        "test_name": rt.test.name,
+                        "test_type_name": rt.test.test_types.first().name
+                        if rt.test.test_types.exists()
+                        else None,
+                        "status": rt.status,
+                        "created_at": rt.created_at,
+                    }
+                    for rt in ref.referral_tests.all()
+                ],
+            }
+            for ref in referrals_qs
+        ]
 
         # Paginate referrals
         paginator = Paginator(referrals, int(page_size))
@@ -430,7 +432,13 @@ class UpdateTestStatusView(APIView):
         user = request.user
 
         try:
-            referral_test = ReferralTest.objects.get(id=referral_test_id)
+            referral_test = (
+                ReferralTest.objects.select_related(
+                    "referral__facility", "referral__referred_by", "test"
+                )
+                .prefetch_related("test__test_types")
+                .get(id=referral_test_id)
+            )
             referral = referral_test.referral
 
             # Check permissions

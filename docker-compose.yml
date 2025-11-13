@@ -12,5 +12,10 @@ services:
     command: >
       sh -c "python manage.py migrate &&
              python manage.py collectstatic --noinput &&
-             gunicorn _tetradx.wsgi:application --bind 0.0.0.0:8000"
+             gunicorn _tetradx.wsgi:application -c gunicorn_config.py"
     restart: always
+    environment:
+      - ENVIRONMENT=${ENVIRONMENT:-production}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - DJANGO_LOG_LEVEL=${DJANGO_LOG_LEVEL:-INFO}
+      - DB_LOG_LEVEL=${DB_LOG_LEVEL:-WARNING}

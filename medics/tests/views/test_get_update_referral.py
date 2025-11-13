@@ -19,6 +19,8 @@ class GetAndUpdateReferralTestCase(BaseTestCase):
             full_name="Test User",
             phone_number="1234567890",
         )
+        self.test_user.set_password("TestPass123!")
+        self.test_user.save()
 
         # Create another user for facility
         self.facility_user = User.objects.create_user(
@@ -26,6 +28,8 @@ class GetAndUpdateReferralTestCase(BaseTestCase):
             full_name="Facility User",
             phone_number="0987654321",
         )
+        self.facility_user.set_password("TestPass123!")
+        self.facility_user.save()
 
         # Create facility and test type
         self.facility = Facility.objects.create(name="Test Lab")
@@ -53,14 +57,14 @@ class GetAndUpdateReferralTestCase(BaseTestCase):
         )
 
         # Login as test_user to get token
-        login_data = {"phone_number": "1234567890"}
+        login_data = {"phone_number": "1234567890", "password": "TestPass123!"}
         login_response = self.client.post(
             reverse_lazy("auth:login"), data=login_data, content_type="application/json"
         )
         self.access_token = login_response.json()["data"]["access_token"]
 
         # Login as facility_user
-        login_data2 = {"phone_number": "0987654321"}
+        login_data2 = {"phone_number": "0987654321", "password": "TestPass123!"}
         login_response2 = self.client.post(
             reverse_lazy("auth:login"),
             data=login_data2,
@@ -109,12 +113,15 @@ class GetAndUpdateReferralTestCase(BaseTestCase):
         """
 
         # Create another user not associated
-        User.objects.create_user(
+        unauth_user = User.objects.create_user(
             username="unauth_user",
             full_name="Unauthorized User",
             phone_number="2222222222",
         )
-        login_data = {"phone_number": "2222222222"}
+        unauth_user.set_password("TestPass123!")
+        unauth_user.save()
+
+        login_data = {"phone_number": "2222222222", "password": "TestPass123!"}
         login_response = self.client.post(
             reverse_lazy("auth:login"), data=login_data, content_type="application/json"
         )

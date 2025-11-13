@@ -31,6 +31,8 @@ class UpdateTestStatusTestCase(BaseTestCase):
             phone_number="1111111111",
             user_type=UserType.MEDICAL_PRACTITIONER.value,
         )
+        self.doctor.set_password("TestPass123!")
+        self.doctor.save()
 
         self.technician = User.objects.create_user(
             username="technician",
@@ -38,6 +40,8 @@ class UpdateTestStatusTestCase(BaseTestCase):
             phone_number="2222222222",
             user_type=UserType.LAB_TECHNICIAN.value,
         )
+        self.technician.set_password("TestPass123!")
+        self.technician.save()
 
         self.unauthorized_user = User.objects.create_user(
             username="unauthorized",
@@ -45,6 +49,8 @@ class UpdateTestStatusTestCase(BaseTestCase):
             phone_number="3333333333",
             user_type=UserType.MEDICAL_PRACTITIONER.value,
         )
+        self.unauthorized_user.set_password("TestPass123!")
+        self.unauthorized_user.save()
 
         # Create facility and test type
         self.facility = Facility.objects.create(name="Test Lab")
@@ -74,21 +80,21 @@ class UpdateTestStatusTestCase(BaseTestCase):
         )
 
         # Login as doctor to get token
-        login_data = {"phone_number": "1111111111"}
+        login_data = {"phone_number": "1111111111", "password": "TestPass123!"}
         login_response = self.client.post(
             reverse_lazy("auth:login"), data=login_data, content_type="application/json"
         )
         self.doctor_token = login_response.json()["data"]["access_token"]
 
         # Login as technician to get token
-        login_data = {"phone_number": "2222222222"}
+        login_data = {"phone_number": "2222222222", "password": "TestPass123!"}
         login_response = self.client.post(
             reverse_lazy("auth:login"), data=login_data, content_type="application/json"
         )
         self.technician_token = login_response.json()["data"]["access_token"]
 
         # Login as unauthorized user to get token
-        login_data = {"phone_number": "3333333333"}
+        login_data = {"phone_number": "3333333333", "password": "TestPass123!"}
         login_response = self.client.post(
             reverse_lazy("auth:login"), data=login_data, content_type="application/json"
         )

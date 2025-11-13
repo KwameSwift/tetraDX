@@ -23,6 +23,8 @@ class GetPractitionerReferralsTestCase(BaseTestCase):
             phone_number="1234567890",
             user_type=UserType.MEDICAL_PRACTITIONER.value,
         )
+        self.practitioner_user.set_password("TestPass123!")
+        self.practitioner_user.save()
 
         # Create facility
         self.facility = Facility.objects.create(name="Test Lab")
@@ -51,7 +53,7 @@ class GetPractitionerReferralsTestCase(BaseTestCase):
         )
 
         # Login to get token
-        login_data = {"phone_number": "1234567890"}
+        login_data = {"phone_number": "1234567890", "password": "TestPass123!"}
         login_response = self.client.post(
             reverse_lazy("auth:login"), data=login_data, content_type="application/json"
         )
@@ -87,13 +89,16 @@ class GetPractitionerReferralsTestCase(BaseTestCase):
         """
 
         # Create non-pract user
-        User.objects.create_user(
+        non_pract_user = User.objects.create_user(
             username="non_pract",
             full_name="Non Pract",
             phone_number="0987654321",
             user_type=UserType.LAB_TECHNICIAN.value,
         )
-        login_data = {"phone_number": "0987654321"}
+        non_pract_user.set_password("TestPass123!")
+        non_pract_user.save()
+
+        login_data = {"phone_number": "0987654321", "password": "TestPass123!"}
         login_response = self.client.post(
             reverse_lazy("auth:login"), data=login_data, content_type="application/json"
         )

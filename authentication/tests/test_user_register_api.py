@@ -20,6 +20,8 @@ class UserRegisterAPITestCase(BaseTestCase):
         self.valid_data = {
             "full_name": self.generate_random_name(),
             "phone_number": self.generate_random_phone_number(),
+            "password": "StrongPass123!",  # Meets all password requirements
+            "confirm_password": "StrongPass123!",  # Must match password
         }
 
     def test_user_registration_success(self):

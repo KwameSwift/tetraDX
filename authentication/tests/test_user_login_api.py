@@ -20,6 +20,8 @@ class UserLoginTestCase(BaseTestCase):
             full_name="Test User",
             phone_number="1234567890",
         )
+        self.test_user.set_password("TestPass123!")
+        self.test_user.save()
 
     def test_user_login_success(self):
         """
@@ -28,6 +30,7 @@ class UserLoginTestCase(BaseTestCase):
 
         login_data = {
             "phone_number": "1234567890",
+            "password": "TestPass123!",
         }
 
         response = self.client.post(
@@ -51,6 +54,7 @@ class UserLoginTestCase(BaseTestCase):
 
         login_data = {
             "phone_number": "0987654321",  # Non-existent phone number
+            "password": "TestPass123!",
         }
 
         response = self.client.post(
@@ -63,7 +67,9 @@ class UserLoginTestCase(BaseTestCase):
             {
                 "status": "error",
                 "code": "400",
-                "detail": {"phone_number": ["No user found with this phone number."]},
+                "detail": {
+                    "phone_number_and_password": ["Invalid phone number or password."]
+                },
             },
         )
 
@@ -73,7 +79,7 @@ class UserLoginTestCase(BaseTestCase):
         """
 
         login_data = {
-            # "phone_number" is missing
+            # "phone_number" and "password" are missing
         }
 
         response = self.client.post(
@@ -86,7 +92,10 @@ class UserLoginTestCase(BaseTestCase):
             {
                 "status": "error",
                 "code": "400",
-                "detail": {"phone_number": ["This field is required."]},
+                "detail": {
+                    "phone_number": ["This field is required."],
+                    "password": ["This field is required."],
+                },
             },
         )
 

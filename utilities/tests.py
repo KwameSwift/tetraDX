@@ -23,28 +23,32 @@ class AddTestTypesTestCase(BaseTestCase):
             phone_number="1234567890",
             user_type=UserType.LAB_TECHNICIAN.value,
         )
+        self.tech_user.set_password("TestPass123!")
+        self.tech_user.save()
 
         # Create facility and associate with tech user
         self.facility = Facility.objects.create(name="Test Lab")
         self.facility.users.add(self.tech_user)
 
-        # Create practitioner user (should not be able to add test types)
-        self.practitioner_user = User.objects.create_user(
+        # Create practitioner user
+        self.pract_user = User.objects.create_user(
             username="pract_user",
             full_name="Pract User",
             phone_number="0987654321",
             user_type=UserType.MEDICAL_PRACTITIONER.value,
         )
+        self.pract_user.set_password("TestPass123!")
+        self.pract_user.save()
 
         # Login as tech user to get token
-        login_data = {"phone_number": "1234567890"}
+        login_data = {"phone_number": "1234567890", "password": "TestPass123!"}
         login_response = self.client.post(
             reverse_lazy("auth:login"), data=login_data, content_type="application/json"
         )
         self.access_token = login_response.json()["data"]["access_token"]
 
         # Login as practitioner to get token
-        login_data_pract = {"phone_number": "0987654321"}
+        login_data_pract = {"phone_number": "0987654321", "password": "TestPass123!"}
         login_response_pract = self.client.post(
             reverse_lazy("auth:login"),
             data=login_data_pract,

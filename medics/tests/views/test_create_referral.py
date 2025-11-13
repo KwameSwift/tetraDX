@@ -23,6 +23,8 @@ class CreateReferralTestCase(BaseTestCase):
             phone_number="1234567890",
             user_type=UserType.MEDICAL_PRACTITIONER.value,
         )
+        self.test_user.set_password("TestPass123!")
+        self.test_user.save()
 
         # Create facility and test type
         self.facility = Facility.objects.create(name="Test Lab")
@@ -35,7 +37,7 @@ class CreateReferralTestCase(BaseTestCase):
         self.facility.test_types.add(self.test_type)
 
         # Login to get token
-        login_data = {"phone_number": "1234567890"}
+        login_data = {"phone_number": "1234567890", "password": "TestPass123!"}
         login_response = self.client.post(
             reverse_lazy("auth:login"), data=login_data, content_type="application/json"
         )

@@ -91,7 +91,7 @@ else:
     CORS_ALLOWED_ORIGINS = [
         "http://localhost:5173",  # Vue dev server
         "http://localhost:5174",
-        "https://merch-store-d981e.firebaseapp.com",
+        "https://tetradx.vercel.app",
     ]
 
 CORS_ALLOW_CREDENTIALS = True

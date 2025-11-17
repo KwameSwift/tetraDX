@@ -68,7 +68,7 @@ INSTALLED_APPS = [
     "utilities",
 ]
 
-ALLOWED_HOSTS = ["*", "localhost", "http://16.170.166.38/"]
+ALLOWED_HOSTS = ["*", "localhost", "16.170.166.38"]
 
 # Add your local development URL to CSRF_TRUSTED_ORIGINS
 CSRF_TRUSTED_ORIGINS = [
@@ -80,6 +80,9 @@ CSRF_TRUSTED_ORIGINS = [
     "https://127.0.0.1:*",
     "https://divided-sealed-calm-switch.trycloudflare.com",
     "https://tetradx.vercel.app",
+    "https://admirable-dodol-f30355.netlify.app",
+    "http://16.170.166.38",
+    "http://16.170.166.38:8000",
 ]
 
 if DEBUG:
@@ -93,6 +96,7 @@ else:
         "http://localhost:5173",  # Vue dev server
         "http://localhost:5174",
         "https://tetradx.vercel.app",
+        "https://admirable-dodol-f30355.netlify.app",
     ]
 
 CORS_ALLOW_CREDENTIALS = True

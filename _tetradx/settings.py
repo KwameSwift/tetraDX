@@ -216,12 +216,6 @@ DATABASES = {
     }
 }
 
-CORS_ORIGIN_ALLOW_ALL = False
-CORS_ALLOWED_ORIGIN_REGEXES = [
-    r"^.*$",
-]
-CORS_ALLOWED_WHITELIST = "*"
-
 # Password validation
 # https://docs.djangoproject.com/en/5.0/ref/settings/#auth-password-validators
 

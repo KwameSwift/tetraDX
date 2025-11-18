@@ -68,7 +68,7 @@ INSTALLED_APPS = [
     "utilities",
 ]
 
-ALLOWED_HOSTS = ["*", "localhost", "16.170.166.38"]
+ALLOWED_HOSTS = ["*", "localhost", "16.170.166.38", "testingapi.tetradxtech.com"]
 
 # Add your local development URL to CSRF_TRUSTED_ORIGINS
 CSRF_TRUSTED_ORIGINS = [
@@ -83,6 +83,7 @@ CSRF_TRUSTED_ORIGINS = [
     "https://admirable-dodol-f30355.netlify.app",
     "http://16.170.166.38",
     "http://16.170.166.38:8000",
+    "https://testingapi.tetradxtech.com",
 ]
 
 if DEBUG:

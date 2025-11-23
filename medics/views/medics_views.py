@@ -4,6 +4,7 @@ from django.contrib.auth import get_user_model
 from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
 from django.db.models import Q
 from django.http import JsonResponse
+from django.utils import timezone
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
@@ -11,7 +12,7 @@ from rest_framework_simplejwt.authentication import JWTAuthentication
 
 from _tetradx.helpers import api_exception
 from authentication.models import UserType
-from medics.models import Facility, Referral, ReferralTest, TestStatus, TestType
+from medics.models import Facility, Referral, ReferralTest, Test, TestStatus, TestType
 from medics.serializers import CreateReferralSerializer, UpdateReferralStatusSerializer
 
 logger = logging.getLogger(__name__)
@@ -45,7 +46,8 @@ class GetTestTypesByFacilityView(APIView):
         facility_id = kwargs.get("facility_id")
         try:
             facility = Facility.objects.get(id=facility_id)
-            test_types = facility.test_types.all().values("id", "name").order_by("name")
+            # Get test types for the facility
+            test_types = facility.test_types.values("id", "name").order_by("name")
             return JsonResponse(
                 {
                     "status": "success",
@@ -66,34 +68,25 @@ class GetTestsByTestTypeView(APIView):
 
     def get(self, request, *args, **kwargs):
         test_type_id = kwargs.get("test_type_id")
+
+        # Check if test type exists
         try:
-            test_type = TestType.objects.get(id=test_type_id)
-            tests = test_type.tests.all().values("id", "name").order_by("name")
-            return JsonResponse(
-                {
-                    "status": "success",
-                    "message": "Tests for test type retrieved successfully",
-                    "data": list(tests),
-                },
-                safe=False,
-                status=status.HTTP_200_OK,
-            )
+            TestType.objects.get(id=test_type_id)
         except TestType.DoesNotExist:
             raise api_exception("Test type with the given ID does not exist.")
 
-
-class GetTestTypesView(APIView):
-    """
-    Retrieve all test types.
-    """
-
-    def get(self, request, *args, **kwargs):
-        test_types = TestType.objects.all().values("id", "name").order_by("name")
+        # Get tests for a specific test type
+        tests = (
+            Test.objects.filter(test_type_id=test_type_id)
+            .distinct()
+            .values("id", "name")
+            .order_by("name")
+        )
         return JsonResponse(
             {
                 "status": "success",
-                "message": "Test types retrieved successfully",
-                "data": list(test_types),
+                "message": "Tests for test type retrieved successfully",
+                "data": list(tests),
             },
             safe=False,
             status=status.HTTP_200_OK,
@@ -196,7 +189,7 @@ class GetAndUpdateReferralView(APIView):
         referral_tests = (
             ReferralTest.objects.filter(referral=referral)
             .select_related("test")
-            .prefetch_related("test__test_types")
+            .prefetch_related("test__test_type")
         )
 
         return JsonResponse(
@@ -214,8 +207,8 @@ class GetAndUpdateReferralView(APIView):
                         {
                             "test_id": rt.id,
                             "test_name": rt.test.name,
-                            "test_type_name": rt.test.test_types.first().name
-                            if rt.test.test_types.exists()
+                            "test_type_name": rt.test.test_type.name
+                            if rt.test.test_type
                             else None,
                             "status": rt.status,
                             "created_at": rt.created_at,
@@ -255,7 +248,7 @@ class GetTechnicianReferralsView(APIView):
         referrals_qs = (
             Referral.objects.filter(facility__in=facilities)
             .select_related("patient", "facility", "referred_by")
-            .prefetch_related("referral_tests__test__test_types")
+            .prefetch_related("referral_tests__test__test_type")
         )
 
         # Apply search filters
@@ -265,7 +258,7 @@ class GetTechnicianReferralsView(APIView):
                 | Q(facility__name__icontains=search_query)
                 | Q(referred_by__full_name__icontains=search_query)
                 | Q(referral_tests__test__name__icontains=search_query)
-                | Q(referral_tests__test__test_types__name__icontains=search_query)
+                | Q(referral_tests__test__test_type__name__icontains=search_query)
             ).distinct()
 
         # Sorting map
@@ -291,8 +284,8 @@ class GetTechnicianReferralsView(APIView):
                     {
                         "test_id": rt.id,
                         "test_name": rt.test.name,
-                        "test_type_name": rt.test.test_types.first().name
-                        if rt.test.test_types.exists()
+                        "test_type_name": rt.test.test_type.name
+                        if rt.test.test_type
                         else None,
                         "status": rt.status,
                         "created_at": rt.created_at,
@@ -356,7 +349,7 @@ class GetPractitionerReferralsView(APIView):
         referrals_qs = (
             Referral.objects.filter(referred_by=user)
             .select_related("patient", "facility", "referred_by")
-            .prefetch_related("referral_tests__test__test_types")
+            .prefetch_related("referral_tests__test__test_type")
             .order_by("-referred_at")
         )
 
@@ -367,7 +360,7 @@ class GetPractitionerReferralsView(APIView):
                 | Q(facility__name__icontains=search_query)
                 | Q(referred_by__full_name__icontains=search_query)
                 | Q(referral_tests__test__name__icontains=search_query)
-                | Q(referral_tests__test__test_types__name__icontains=search_query)
+                | Q(referral_tests__test__test_type__name__icontains=search_query)
             ).distinct()
 
         # Calculate summary statistics before converting to list
@@ -396,8 +389,8 @@ class GetPractitionerReferralsView(APIView):
                     {
                         "test_id": rt.id,
                         "test_name": rt.test.name,
-                        "test_type_name": rt.test.test_types.first().name
-                        if rt.test.test_types.exists()
+                        "test_type_name": rt.test.test_type.name
+                        if rt.test.test_type
                         else None,
                         "status": rt.status,
                         "created_at": rt.created_at,
@@ -459,7 +452,7 @@ class UpdateTestStatusView(APIView):
                 ReferralTest.objects.select_related(
                     "referral__facility", "referral__referred_by", "test"
                 )
-                .prefetch_related("test__test_types")
+                .prefetch_related("test__test_type")
                 .get(id=referral_test_id)
             )
             referral = referral_test.referral
@@ -480,6 +473,11 @@ class UpdateTestStatusView(APIView):
 
             # Update status
             referral_test.status = new_status
+            referral.updated_at = timezone.now()
+
+            if new_status == TestStatus.COMPLETED.value:
+                referral_test.completed_at = timezone.now()
+
             referral_test.save()
 
             return JsonResponse(
@@ -490,8 +488,8 @@ class UpdateTestStatusView(APIView):
                         "referral_id": referral_test.referral.id,
                         "test_id": referral_test.id,
                         "test_name": referral_test.test.name,
-                        "test_type_name": referral_test.test.test_types.first().name
-                        if referral_test.test.test_types.exists()
+                        "test_type_name": referral_test.test.test_type.name
+                        if referral_test.test.test_type
                         else None,
                         "status": referral_test.status,
                     },

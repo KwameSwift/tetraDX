@@ -56,9 +56,10 @@ class UpdateTestStatusTestCase(BaseTestCase):
         self.facility = Facility.objects.create(name="Test Lab")
         self.facility.users.add(self.technician)
         self.test_type = TestType.objects.create(name="Blood Test")
-        self.test = Test.objects.create(name="Complete Blood Count")
-        self.test.test_types.add(self.test_type)
         self.facility.test_types.add(self.test_type)
+        self.test = Test.objects.create(
+            name="Complete Blood Count", test_type=self.test_type
+        )
 
         # Create patient
         self.patient = Patient.objects.create(

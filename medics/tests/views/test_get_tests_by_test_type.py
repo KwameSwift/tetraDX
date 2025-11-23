@@ -13,13 +13,13 @@ class GetTestsByTestTypeTestCase(BaseTestCase):
         # Create test types and tests
         self.test_type1 = TestType.objects.create(name="Blood Test")
         self.test_type2 = TestType.objects.create(name="Urine Test")
-        self.test1 = Test.objects.create(name="Complete Blood Count")
-        self.test2 = Test.objects.create(name="Blood Glucose")
-        self.test3 = Test.objects.create(name="Urinalysis")
-
-        # Associate tests with test types
-        self.test_type1.tests.add(self.test1, self.test2)
-        self.test_type2.tests.add(self.test3)
+        self.test1 = Test.objects.create(
+            name="Complete Blood Count", test_type=self.test_type1
+        )
+        self.test2 = Test.objects.create(
+            name="Blood Glucose", test_type=self.test_type1
+        )
+        self.test3 = Test.objects.create(name="Urinalysis", test_type=self.test_type2)
 
     def test_get_tests_by_test_type_success(self):
         """

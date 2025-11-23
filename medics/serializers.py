@@ -1,3 +1,4 @@
+from django.utils import timezone
 from rest_framework import serializers
 
 from medics.models import Facility, Patient, Referral, ReferralTest, Test, TestStatus
@@ -24,7 +25,7 @@ class CreateReferralSerializer(serializers.Serializer):
 
         # Validate test_id
         referral_tests = Test.objects.filter(
-            id__in=tests, test_types__facilities__id=facility_id
+            id__in=tests, test_type__facilities__id=facility_id
         )
         if not referral_tests.exists():
             raise serializers.ValidationError(
@@ -75,8 +76,8 @@ class CreateReferralSerializer(serializers.Serializer):
                 {
                     "test_id": rt.id,
                     "test_name": rt.test.name,
-                    "test_type_name": rt.test.test_types.first().name
-                    if rt.test.test_types.exists()
+                    "test_type_name": rt.test.test_type.name
+                    if rt.test.test_type
                     else None,
                     "status": rt.status,
                     "created_at": rt.created_at,
@@ -110,7 +111,13 @@ class UpdateReferralStatusSerializer(serializers.Serializer):
         return attrs
 
     def update(self, instance, validated_data):
-        instance.status = validated_data.get("status", instance.status)
+        status = validated_data.get("status", instance.status)
+        instance.status = status
+        instance.updated_at = timezone.now()
+
+        if status == TestStatus.COMPLETED.value:
+            instance.completed_at = timezone.now()
+
         instance.save()
 
         # Get referral tests
@@ -119,9 +126,7 @@ class UpdateReferralStatusSerializer(serializers.Serializer):
             {
                 "test_id": rt.id,
                 "test_name": rt.test.name,
-                "test_type_name": rt.test.test_types.first().name
-                if rt.test.test_types.exists()
-                else None,
+                "test_type_name": rt.test.test_type.name if rt.test.test_type else None,
                 "status": rt.status,
                 "created_at": rt.created_at,
             }
@@ -135,5 +140,7 @@ class UpdateReferralStatusSerializer(serializers.Serializer):
             "referring_doctor": instance.referred_by.full_name,
             "referred_at": instance.referred_at,
             "status": instance.status,
+            "updated_at": instance.updated_at,
+            "completed_at": instance.completed_at,
             "tests": tests_data,
         }

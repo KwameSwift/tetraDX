@@ -27,9 +27,10 @@ class ReferralAdminTestCase(TestCase):
         self.facility = Facility.objects.create(name="Test Lab")
         self.facility.users.add(self.user)
         self.test_type = TestType.objects.create(name="Blood Test")
-        self.test = Test.objects.create(name="Complete Blood Count")
-        self.test.test_types.add(self.test_type)
         self.facility.test_types.add(self.test_type)
+        self.test = Test.objects.create(
+            name="Complete Blood Count", test_type=self.test_type
+        )
         self.patient = Patient.objects.create(
             full_name_or_id="John Doe", contact_number="0987654321"
         )
@@ -78,7 +79,7 @@ class ReferralAdminTestCase(TestCase):
             "patient__full_name_or_id",
             "facility__name",
             "referral_tests__test__name",
-            "referral_tests__test__test_types__name",
+            "referral_tests__test__test_type__name",
         )
         self.assertEqual(self.admin.search_fields, expected)
 
@@ -136,4 +137,5 @@ class ReferralAdminTestCase(TestCase):
         Test.objects.all().delete()
         Patient.objects.all().delete()
         Referral.objects.all().delete()
+        ReferralTest.objects.all().delete()
         ReferralTest.objects.all().delete()

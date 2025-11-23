@@ -31,9 +31,10 @@ class GetPractitionerReferralsTestCase(BaseTestCase):
 
         # Create test type and patient
         self.test_type = TestType.objects.create(name="Blood Test")
-        self.test = Test.objects.create(name="Complete Blood Count")
-        self.test.test_types.add(self.test_type)
         self.facility.test_types.add(self.test_type)
+        self.test = Test.objects.create(
+            name="Complete Blood Count", test_type=self.test_type
+        )
         self.patient = Patient.objects.create(
             full_name_or_id="John Doe", contact_number="1111111111"
         )
@@ -142,6 +143,7 @@ class GetPractitionerReferralsTestCase(BaseTestCase):
         """
         # Create another facility and referral
         facility2 = Facility.objects.create(name="City Hospital")
+        facility2.test_types.add(self.test_type)  # Add test_type to new facility
         patient2 = Patient.objects.create(
             full_name_or_id="Alice Brown", contact_number="3333333333"
         )
@@ -168,8 +170,7 @@ class GetPractitionerReferralsTestCase(BaseTestCase):
         Test search functionality by test name.
         """
         # Create another test and referral
-        test2 = Test.objects.create(name="X-Ray Chest")
-        test2.test_types.add(self.test_type)
+        test2 = Test.objects.create(name="X-Ray Chest", test_type=self.test_type)
         patient2 = Patient.objects.create(
             full_name_or_id="Bob Wilson", contact_number="4444444444"
         )
@@ -199,8 +200,8 @@ class GetPractitionerReferralsTestCase(BaseTestCase):
         """
         # Create another test type and referral
         test_type2 = TestType.objects.create(name="Radiology")
-        test2 = Test.objects.create(name="MRI Scan")
-        test2.test_types.add(test_type2)
+        self.facility.test_types.add(test_type2)  # Add test_type2 to facility
+        test2 = Test.objects.create(name="MRI Scan", test_type=test_type2)
         patient2 = Patient.objects.create(
             full_name_or_id="Carol Davis", contact_number="5555555555"
         )

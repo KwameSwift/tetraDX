@@ -30,11 +30,11 @@ class CreateReferralTestCase(BaseTestCase):
         self.facility = Facility.objects.create(name="Test Lab")
         self.facility.users.add(self.test_user)
         self.test_type = TestType.objects.create(name="Blood Test")
-        self.test = Test.objects.create(name="Complete Blood Count")
-        self.test.test_types.add(self.test_type)
-        self.test2 = Test.objects.create(name="Urine Test")
-        self.test2.test_types.add(self.test_type)
         self.facility.test_types.add(self.test_type)
+        self.test = Test.objects.create(
+            name="Complete Blood Count", test_type=self.test_type
+        )
+        self.test2 = Test.objects.create(name="Urine Test", test_type=self.test_type)
 
         # Login to get token
         login_data = {"phone_number": "1234567890", "password": "TestPass123!"}
@@ -236,9 +236,8 @@ class CreateReferralTestCase(BaseTestCase):
         # Create another facility and test type not linked to main facility
         other_facility = Facility.objects.create(name="Other Lab")
         other_test_type = TestType.objects.create(name="X-Ray")
-        other_test = Test.objects.create(name="Chest X-Ray")
-        other_test.test_types.add(other_test_type)
         other_facility.test_types.add(other_test_type)
+        other_test = Test.objects.create(name="Chest X-Ray", test_type=other_test_type)
 
         referral_data = {
             "patient_full_name_or_id": "John Doe",

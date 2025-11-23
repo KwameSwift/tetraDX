@@ -12,7 +12,7 @@ class TestTypeAdmin(admin.ModelAdmin):
 
 @admin.register(Facility)
 class FacilityAdmin(admin.ModelAdmin):
-    list_display = ("name", "contact_number", "created_at")
+    list_display = ("id", "name", "contact_number", "created_at")
     search_fields = ("name",)
     ordering = ("-created_at",)
 

@@ -52,6 +52,29 @@ class ReferralAdmin(admin.ModelAdmin):
     list_filter = ("status", "referred_at", "facility__name")
     ordering = ("-referred_at",)
 
+    # Add inline to show referral tests with their statuses
+    class ReferralTestInline(admin.TabularInline):
+        model = ReferralTest
+        extra = 0
+        readonly_fields = (
+            "test",
+            "test_type_display",
+            "status",
+            "created_at",
+            "updated_at",
+            "completed_at",
+        )
+        can_delete = False
+
+        def test_type_display(self, obj):
+            if obj.test and obj.test.test_type:
+                return obj.test.test_type.name
+            return None
+
+        test_type_display.short_description = "Test Type"
+
+    inlines = [ReferralTestInline]
+
     def referral_id(self, obj):
         return obj.id
 

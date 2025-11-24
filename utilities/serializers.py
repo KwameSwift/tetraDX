@@ -13,7 +13,7 @@ class SingleTestSerializer(serializers.Serializer):
 
 class TestTypeSerializer(serializers.Serializer):
     facility_ids = serializers.ListField(
-        child=serializers.IntegerField(), required=False
+        child=serializers.IntegerField(), required=True
     )
     name = serializers.CharField(max_length=255, required=True)
     tests = serializers.ListSerializer(
@@ -25,6 +25,7 @@ class TestTypeSerializer(serializers.Serializer):
 
     def validate(self, attrs):
         facility_ids = attrs.get("facility_ids", None)
+        name = attrs.get("name")
 
         if facility_ids:
             facilities = Facility.objects.filter(id__in=facility_ids)
@@ -34,38 +35,53 @@ class TestTypeSerializer(serializers.Serializer):
                 )
             attrs["facilities"] = facilities
 
+            # Check if test type already exists for any of these facilities
+            normalized_name = str(name).strip().upper()
+            for facility in facilities:
+                if facility.test_types.filter(name=normalized_name).exists():
+                    raise serializers.ValidationError(
+                        {
+                            "name": "A test type with this name already exists for this facility."
+                        }
+                    )
+
         return attrs
 
     @transaction.atomic
     def create(self, validated_data):
         name = str(validated_data.get("name")).strip().upper()
         tests_data = validated_data.get("tests", [])
-        facility: Facility = self.context.get("facility")
         facilities = validated_data.get("facilities", [])
 
-        # Get or create the test type
-        test_type, _ = TestType.objects.get_or_create(name=name)
+        # Create tests for each facility (tests are now facility-specific)
+        created_tests = []
+        for facility in facilities:
+            # Get or create the test type
+            test_type, _ = TestType.objects.get_or_create(name=name, facility=facility)
 
-        # Associate facilities with test type
-        if facilities:
-            for new_facility in facilities:
-                test_type.facilities.add(new_facility)
-        else:
-            test_type.facilities.add(facility)
+            for test_data in tests_data:
+                test_name = str(test_data.get("name")).strip().upper()
+                test_price = test_data.get("price", 0.0)
 
-        # Get or create tests (prevents duplicates)
-        for test_data in tests_data:
-            test_name = str(test_data.get("name")).strip().upper()
-            test_price = test_data.get("price", 0.0)
+                # Use get_or_create to avoid duplicate tests for same facility + test_type + name
+                test, created = Test.objects.get_or_create(
+                    name=test_name,
+                    test_type=test_type,
+                    defaults={"price": test_price},
+                )
 
-            # Use get_or_create to avoid duplicate tests
-            test, created = Test.objects.get_or_create(
-                name=test_name, test_type=test_type, defaults={"price": test_price}
-            )
+                # Update price if test already exists and new price is provided
+                if not created and test_price is not None:
+                    test.price = test_price
+                    test.save(update_fields=["price"])
 
-            # Update price if test already exists and new price is provided
-            if not created and test_price is not None:
-                test.price = test_price
-                test.save(update_fields=["price"])
+                if created:
+                    created_tests.append(test)
 
-        return test_type
+        return {
+            "name": test_type.name,
+            "tests": [
+                {"id": test.id, "name": test.name, "price": float(test.price)}
+                for test in created_tests
+            ],
+        }

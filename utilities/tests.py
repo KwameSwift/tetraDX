@@ -62,7 +62,11 @@ class AddTestTypesTestCase(BaseTestCase):
         """
         test_data = {
             "name": "Cardiology Tests",
-            "tests": ["ECG", "Echo", "Stress Test"],
+            "tests": [
+                {"name": "ECG"},
+                {"name": "Echo"},
+                {"name": "Stress Test"},
+            ],
         }
 
         response = self.client.post(
@@ -75,28 +79,30 @@ class AddTestTypesTestCase(BaseTestCase):
         self.assertEqual(response.status_code, 200)
         response = response.json()
         self.assertEqual(response["status"], "success")
-        self.assertEqual(response["message"], "Test type added successfully")
+        self.assertEqual(response["message"], "Test type and tests added successfully")
         self.assertIn("data", response)
-        self.assertEqual(response["data"]["test_type"], "Cardiology Tests")
+        self.assertEqual(response["data"]["name"], "CARDIOLOGY TESTS")
         self.assertEqual(len(response["data"]["tests"]), 3)
 
         # Verify database objects were created
-        test_type = TestType.objects.get(name="Cardiology Tests")
-        self.assertTrue(self.facility.test_types.filter(id=test_type.id).exists())
+        test_type = TestType.objects.get(
+            name="CARDIOLOGY TESTS", facility=self.facility
+        )
+        self.assertEqual(test_type.facility, self.facility)
 
         # Verify tests were created and associated
-        tests = Test.objects.filter(test_types=test_type)
+        tests = Test.objects.filter(test_type=test_type)
         self.assertEqual(tests.count(), 3)
         test_names = [test.name for test in tests]
         self.assertIn("ECG", test_names)
-        self.assertIn("Echo", test_names)
-        self.assertIn("Stress Test", test_names)
+        self.assertIn("ECHO", test_names)
+        self.assertIn("STRESS TEST", test_names)
 
     def test_add_test_types_unauthorized_user_type(self):
         """
         Test that only lab technicians can add test types.
         """
-        test_data = {"name": "Unauthorized Test Type", "tests": ["Test 1"]}
+        test_data = {"name": "Unauthorized Test Type", "tests": [{"name": "Test 1"}]}
 
         response = self.client.post(
             self.url,
@@ -117,7 +123,7 @@ class AddTestTypesTestCase(BaseTestCase):
         Test that duplicate test type names are not allowed for the same facility.
         """
         # First create a test type
-        test_data = {"name": "Duplicate Test", "tests": ["Test 1"]}
+        test_data = {"name": "Duplicate Test", "tests": [{"name": "Test 1"}]}
 
         response1 = self.client.post(
             self.url,
@@ -127,7 +133,7 @@ class AddTestTypesTestCase(BaseTestCase):
         )
         self.assertEqual(response1.status_code, 200)
 
-        # Try to create the same test type again
+        # Try to create the same test type again - should be rejected
         response2 = self.client.post(
             self.url,
             data=test_data,
@@ -135,17 +141,18 @@ class AddTestTypesTestCase(BaseTestCase):
             HTTP_AUTHORIZATION=f"Bearer {self.access_token}",
         )
 
+        # Should return validation error
         self.assertEqual(response2.status_code, 400)
-        response2 = response2.json()
-        self.assertIn("name", response2)
-        self.assertIn("A test type with this name already exists", response2["name"][0])
+        response2_json = response2.json()
+        self.assertIn("name", response2_json)
+        self.assertIn("already exists", response2_json["name"][0])
 
     def test_add_test_types_missing_required_fields(self):
         """
         Test validation of missing required fields.
         """
         # Missing name
-        test_data = {"tests": ["Test 1"]}
+        test_data = {"tests": [{"name": "Test 1"}]}
 
         response = self.client.post(
             self.url,
@@ -190,7 +197,7 @@ class AddTestTypesTestCase(BaseTestCase):
         """
         Test that unauthenticated users cannot add test types.
         """
-        test_data = {"name": "Unauthenticated Test", "tests": ["Test 1"]}
+        test_data = {"name": "Unauthenticated Test", "tests": [{"name": "Test 1"}]}
 
         response = self.client.post(
             self.url,

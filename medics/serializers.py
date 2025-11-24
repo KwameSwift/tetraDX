@@ -17,16 +17,15 @@ class CreateReferralSerializer(serializers.Serializer):
 
         # Validate facility_id
         try:
-            attrs["facility"] = Facility.objects.get(id=facility_id)
+            facility = Facility.objects.get(id=facility_id)
+            attrs["facility"] = facility
         except Facility.DoesNotExist:
             raise serializers.ValidationError(
                 {"facility_id": "Facility with the given ID does not exist."}
             )
 
         # Validate test_id
-        referral_tests = Test.objects.filter(
-            id__in=tests, test_type__facilities__id=facility_id
-        )
+        referral_tests = Test.objects.filter(id__in=tests, test_type__facility=facility)
         if not referral_tests.exists():
             raise serializers.ValidationError(
                 {"test_id": "Test with the given ID does not exist."}

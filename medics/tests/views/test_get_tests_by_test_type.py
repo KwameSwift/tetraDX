@@ -1,7 +1,7 @@
 from django.urls import reverse_lazy
 
 from _tetradx import BaseTestCase
-from medics.models import Test, TestType
+from medics.models import Facility, Test, TestType
 
 
 class GetTestsByTestTypeTestCase(BaseTestCase):
@@ -10,9 +10,14 @@ class GetTestsByTestTypeTestCase(BaseTestCase):
     """
 
     def setUp(self):
-        # Create test types and tests
-        self.test_type1 = TestType.objects.create(name="Blood Test")
-        self.test_type2 = TestType.objects.create(name="Urine Test")
+        # Create facility and test types and tests
+        self.facility = Facility.objects.create(name="Test Lab")
+        self.test_type1 = TestType.objects.create(
+            name="Blood Test", facility=self.facility
+        )
+        self.test_type2 = TestType.objects.create(
+            name="Urine Test", facility=self.facility
+        )
         self.test1 = Test.objects.create(
             name="Complete Blood Count", test_type=self.test_type1
         )
@@ -75,3 +80,4 @@ class GetTestsByTestTypeTestCase(BaseTestCase):
     def tearDown(self):
         Test.objects.all().delete()
         TestType.objects.all().delete()
+        Facility.objects.all().delete()

@@ -47,7 +47,11 @@ class GetTestTypesByFacilityView(APIView):
         try:
             facility = Facility.objects.get(id=facility_id)
             # Get test types for the facility
-            test_types = facility.test_types.values("id", "name").order_by("name")
+            test_types = (
+                TestType.objects.filter(facility=facility)
+                .values("id", "name")
+                .order_by("name")
+            )
             return JsonResponse(
                 {
                     "status": "success",
@@ -71,13 +75,13 @@ class GetTestsByTestTypeView(APIView):
 
         # Check if test type exists
         try:
-            TestType.objects.get(id=test_type_id)
+            test_type = TestType.objects.get(id=test_type_id)
         except TestType.DoesNotExist:
             raise api_exception("Test type with the given ID does not exist.")
 
         # Get tests for a specific test type
         tests = (
-            Test.objects.filter(test_type_id=test_type_id)
+            Test.objects.filter(test_type=test_type)
             .distinct()
             .values("id", "name")
             .order_by("name")

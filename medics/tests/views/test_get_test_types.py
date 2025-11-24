@@ -37,4 +37,3 @@ class GetTestTypesTestCase(BaseTestCase):
 
     def tearDown(self):
         TestType.objects.all().delete()
-        TestType.objects.all().delete()

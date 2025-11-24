@@ -29,8 +29,9 @@ class CreateReferralTestCase(BaseTestCase):
         # Create facility and test type
         self.facility = Facility.objects.create(name="Test Lab")
         self.facility.users.add(self.test_user)
-        self.test_type = TestType.objects.create(name="Blood Test")
-        self.facility.test_types.add(self.test_type)
+        self.test_type = TestType.objects.create(
+            name="Blood Test", facility=self.facility
+        )
         self.test = Test.objects.create(
             name="Complete Blood Count", test_type=self.test_type
         )
@@ -235,8 +236,7 @@ class CreateReferralTestCase(BaseTestCase):
         """
         # Create another facility and test type not linked to main facility
         other_facility = Facility.objects.create(name="Other Lab")
-        other_test_type = TestType.objects.create(name="X-Ray")
-        other_facility.test_types.add(other_test_type)
+        other_test_type = TestType.objects.create(name="X-Ray", facility=other_facility)
         other_test = Test.objects.create(name="Chest X-Ray", test_type=other_test_type)
 
         referral_data = {

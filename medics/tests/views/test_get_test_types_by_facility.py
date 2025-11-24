@@ -13,13 +13,13 @@ class GetTestTypesByFacilityTestCase(BaseTestCase):
         # Create facility and test types
         self.facility1 = Facility.objects.create(name="Test Lab 1")
         self.facility2 = Facility.objects.create(name="Test Lab 2")
-        self.test_type1 = TestType.objects.create(name="Blood Test")
-        self.test_type2 = TestType.objects.create(name="Urine Test")
-        self.test_type3 = TestType.objects.create(name="X-Ray")
-
-        # Associate test types with facilities
-        self.facility1.test_types.add(self.test_type1, self.test_type2)
-        self.facility2.test_types.add(self.test_type3)
+        self.test_type1 = TestType.objects.create(
+            name="Blood Test", facility=self.facility1
+        )
+        self.test_type2 = TestType.objects.create(
+            name="Urine Test", facility=self.facility1
+        )
+        self.test_type3 = TestType.objects.create(name="X-Ray", facility=self.facility2)
 
     def test_get_test_types_by_facility_success(self):
         """

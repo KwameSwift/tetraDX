@@ -50,10 +50,13 @@ class Facility(models.Model):
 
 
 class TestType(models.Model):
-    facilities = models.ManyToManyField(
+    facility = models.ForeignKey(
         Facility,
+        on_delete=models.CASCADE,
         related_name="test_types",
-        help_text="Facilities offering this test type",
+        help_text="Facility offering this test type",
+        null=True,
+        blank=True,
     )
     name = models.CharField(
         max_length=255,
@@ -273,9 +276,7 @@ class ReferralTest(models.Model):
         """Validate that the test's TestType is offered by the referral's facility"""
         super().clean()
         if self.referral.facility and self.test.test_type:
-            if not self.test.test_type.facilities.filter(
-                id=self.referral.facility.id
-            ).exists():
+            if not self.test.test_type.facility == self.referral.facility:
                 raise ValidationError(
                     f"Test '{self.test.name}' (type: {self.test.test_type.name}) "
                     f"is not available at facility '{self.referral.facility.name}'"

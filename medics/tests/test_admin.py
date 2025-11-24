@@ -26,8 +26,9 @@ class ReferralAdminTestCase(TestCase):
         )
         self.facility = Facility.objects.create(name="Test Lab")
         self.facility.users.add(self.user)
-        self.test_type = TestType.objects.create(name="Blood Test")
-        self.facility.test_types.add(self.test_type)
+        self.test_type = TestType.objects.create(
+            name="Blood Test", facility=self.facility
+        )
         self.test = Test.objects.create(
             name="Complete Blood Count", test_type=self.test_type
         )

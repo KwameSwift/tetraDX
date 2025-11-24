@@ -475,6 +475,9 @@ class UpdateTestStatusView(APIView):
             if new_status not in valid_statuses:
                 raise api_exception("Invalid status value.")
 
+            if referral_test.status == new_status:
+                raise api_exception(f"The test is already in the {new_status} state.")
+
             # Update status
             referral_test.status = new_status
             referral.updated_at = timezone.now()
@@ -496,6 +499,8 @@ class UpdateTestStatusView(APIView):
                         if referral_test.test.test_type
                         else None,
                         "status": referral_test.status,
+                        "updated_at": referral_test.updated_at,
+                        "completed_at": referral_test.completed_at,
                     },
                 },
                 status=status.HTTP_200_OK,

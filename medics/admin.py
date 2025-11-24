@@ -5,9 +5,16 @@ from medics.models import Facility, Patient, Referral, ReferralTest, Test, TestT
 
 @admin.register(TestType)
 class TestTypeAdmin(admin.ModelAdmin):
-    list_display = ("name", "description", "created_at")
+    list_display = ("name", "facility_name", "created_at")
     search_fields = ("name",)
     ordering = ("-created_at",)
+
+    def facility_name(self, obj):
+        if obj.facility:
+            return obj.facility.name
+        return None
+
+    facility_name.short_description = "Facility"
 
 
 @admin.register(Facility)
@@ -77,10 +84,17 @@ class ReferralAdmin(admin.ModelAdmin):
 
 @admin.register(Test)
 class TestAdmin(admin.ModelAdmin):
-    list_display = ("name", "test_type", "description", "created_at")
+    list_display = ("name", "test_type", "facility_name", "created_at")
     search_fields = ("name", "test_type__name")
     list_filter = ("test_type",)
     ordering = ("-created_at",)
+
+    def facility_name(self, obj):
+        if obj.test_type and obj.test_type.facility:
+            return obj.test_type.facility.name
+        return None
+
+    facility_name.short_description = "Facility"
 
 
 @admin.register(ReferralTest)

@@ -5,11 +5,19 @@ from django.db import transaction
 from django.http import JsonResponse
 from django.utils import timezone
 from rest_framework import permissions, status
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
+from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from _tetradx.helpers import api_exception
-from authentication.serializers import LoginSerializer, RegisterSerializer
+from authentication.models import UserType
+from authentication.serializers import (
+    ChangePasswordSerializer,
+    LoginSerializer,
+    RegisterSerializer,
+)
+from medics.helpers import get_user_branches
 
 logger = logging.getLogger(__name__)
 User = get_user_model()
@@ -56,48 +64,110 @@ class UserRegistrationView(APIView):
 class LoginView(APIView):
     """
     User login view.
-
-    Authenticates user and returns a token.
+    Authenticates user and returns authentication tokens.
     """
 
     permission_classes = [permissions.AllowAny]
 
     def post(self, request, *args, **kwargs):
-        serializer = LoginSerializer(data=self.request.data)
+        serializer = LoginSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        user = serializer.validated_data["user"]
+
+        data = {
+            "refresh_token": None,
+            "access_token": None,
+            "user_data": self._get_base_user_data(user),
+        }
+
+        # Auth tokens
+        refresh = RefreshToken.for_user(user)
+        data["refresh_token"] = str(refresh)
+        data["access_token"] = str(refresh.access_token)
+
+        # Extra info for lab technicians
+        if user.user_type == UserType.LAB_TECHNICIAN.value:
+            self._attach_lab_technician_data(user, data["user_data"])
+
+        # Update last login
+        user.last_login = timezone.now()
+        user.save(update_fields=["last_login"])
+
+        return JsonResponse(
+            {
+                "status": "success",
+                "message": "Login successful",
+                "data": data,
+            },
+            safe=False,
+            status=status.HTTP_200_OK,
+        )
+
+    # ----------------------------------------------------------------------
+    # Helpers
+    # ----------------------------------------------------------------------
+    def _get_base_user_data(self, user):
+        """Return user fields common to all user types."""
+        return {
+            "id": str(user.id),
+            "full_name": user.full_name,
+            "phone_number": user.phone_number,
+            "user_type": user.user_type,
+            "date_joined": user.date_joined,
+        }
+
+    def _attach_lab_technician_data(self, user, user_data):
+        """
+        Adds facility + branch info to user_data for lab technicians.
+        """
+        user_branches = get_user_branches(user) or []
+
+        # Collect facilities
+        facilities = {branch.facility for branch in user_branches}
+        facility = next(iter(facilities), None)
+
+        # Branch list formatting
+        branches = [
+            {
+                "id": str(branch.id),
+                "name": branch.name,
+            }
+            for branch in user_branches
+        ]
+
+        user_data.update(
+            {
+                "in_new_user": user.last_login is None,
+                "is_admin": facility.admin == user if facility else False,
+                "facility_name": facility.name if facility else None,
+                "branches": branches,
+            }
+        )
+
+
+class ChangePasswordView(APIView):
+    """
+    Change password for authenticated users.
+    """
+
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, *args, **kwargs):
+        user = request.user
+        data = request.data
+
+        serializer = ChangePasswordSerializer(data=data, context={"user": user})
 
         if serializer.is_valid():
-            user = serializer.validated_data.get("user")
+            # Change the user's password
+            serializer.save()
 
-            # Update last_login field
-            user.last_login = timezone.now()
-            user.save()
-
-            # Generate authorization tokens for user
-            refresh = RefreshToken.for_user(user)
-            data = {
-                "refresh_token": str(refresh),
-                "access_token": str(refresh.access_token),
-                "user_data": {
-                    "id": str(user.id),
-                    "full_name": user.full_name,
-                    "phone_number": user.phone_number,
-                    "user_type": user.user_type,
-                    "date_joined": user.date_joined,
-                    "facilities": [
-                        {
-                            "id": str(facility.id),
-                            "name": facility.name,
-                            "contact_number": facility.contact_number,
-                        }
-                        for facility in user.facilities.all()
-                    ],
-                },
-            }
             return JsonResponse(
                 {
                     "status": "success",
-                    "message": "Login successful",
-                    "data": data,
+                    "message": "Password changed successfully.",
                 },
                 safe=False,
                 status=status.HTTP_200_OK,

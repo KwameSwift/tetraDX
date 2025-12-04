@@ -3,7 +3,7 @@ from django.urls import reverse_lazy
 
 from _tetradx import BaseTestCase
 from authentication.models import UserType
-from medics.models import Facility, Test, TestType
+from medics.models import BranchTechnician, Facility, FacilityBranch, Test, TestType
 
 User = get_user_model()
 
@@ -26,9 +26,13 @@ class CreateReferralTestCase(BaseTestCase):
         self.test_user.set_password("TestPass123!")
         self.test_user.save()
 
-        # Create facility and test type
+        # Create facility, branch and test type
         self.facility = Facility.objects.create(name="Test Lab")
-        self.facility.users.add(self.test_user)
+        self.branch = FacilityBranch.objects.create(
+            facility=self.facility, name="Main Branch"
+        )
+        BranchTechnician.objects.create(user=self.test_user, branch=self.branch)
+
         self.test_type = TestType.objects.create(
             name="Blood Test", facility=self.facility
         )
@@ -53,7 +57,7 @@ class CreateReferralTestCase(BaseTestCase):
             "patient_full_name_or_id": "John Doe",
             "patient_contact_number": "0987654321",
             "tests": [self.test.id],
-            "facility_id": self.facility.id,
+            "branch_id": self.branch.id,
             "clinical_notes": "Test notes",
         }
 
@@ -69,7 +73,8 @@ class CreateReferralTestCase(BaseTestCase):
         self.assertEqual(response["message"], "Referral created successfully")
         self.assertIn("data", response)
         self.assertEqual(response["data"]["patient_name_or_id"], "John Doe")
-        self.assertEqual(response["data"]["facility"], "Test Lab")
+        self.assertEqual(response["data"]["facility_name"], "Test Lab")
+        self.assertEqual(response["data"]["branch_name"], "Main Branch")
         self.assertEqual(len(response["data"]["tests"]), 1)
         self.assertEqual(
             response["data"]["tests"][0]["test_name"], "Complete Blood Count"
@@ -85,7 +90,7 @@ class CreateReferralTestCase(BaseTestCase):
             "patient_full_name_or_id": "Jane Doe",
             "patient_contact_number": "0987654322",
             "tests": [self.test.id, self.test2.id],
-            "facility_id": self.facility.id,
+            "branch_id": self.branch.id,
             "clinical_notes": "Multiple test notes",
         }
 
@@ -101,7 +106,8 @@ class CreateReferralTestCase(BaseTestCase):
         self.assertEqual(response["message"], "Referral created successfully")
         self.assertIn("data", response)
         self.assertEqual(response["data"]["patient_name_or_id"], "Jane Doe")
-        self.assertEqual(response["data"]["facility"], "Test Lab")
+        self.assertEqual(response["data"]["facility_name"], "Test Lab")
+        self.assertEqual(response["data"]["branch_name"], "Main Branch")
         self.assertEqual(len(response["data"]["tests"]), 2)
         test_names = [test["test_name"] for test in response["data"]["tests"]]
         self.assertIn("Complete Blood Count", test_names)
@@ -133,7 +139,7 @@ class CreateReferralTestCase(BaseTestCase):
                 "detail": {
                     "patient_full_name_or_id": ["This field is required."],
                     "tests": ["This field is required."],
-                    "facility_id": ["This field is required."],
+                    "branch_id": ["This field is required."],
                 },
             },
         )
@@ -146,7 +152,7 @@ class CreateReferralTestCase(BaseTestCase):
         referral_data = {
             "patient_full_name_or_id": "John Doe",
             "tests": [self.test.id],
-            "facility_id": 999,  # Invalid ID
+            "branch_id": 999,  # Invalid ID
         }
 
         response = self.client.post(
@@ -164,7 +170,7 @@ class CreateReferralTestCase(BaseTestCase):
 
         referral_data = {
             "patient_full_name_or_id": "John Doe",
-            "facility_id": self.facility.id,
+            "branch_id": self.branch.id,
             "tests": [999],  # Invalid ID
         }
 
@@ -194,7 +200,7 @@ class CreateReferralTestCase(BaseTestCase):
             "patient_full_name_or_id": "John Doe",
             "patient_contact_number": "0987654321",
             "tests": [],  # Empty list
-            "facility_id": self.facility.id,
+            "branch_id": self.branch.id,
             "clinical_notes": "Test notes",
         }
 
@@ -215,7 +221,7 @@ class CreateReferralTestCase(BaseTestCase):
             "patient_full_name_or_id": "Jane Smith",
             "patient_contact_number": "0987654323",
             "tests": [self.test.id, self.test.id],  # Duplicate test IDs
-            "facility_id": self.facility.id,
+            "branch_id": self.branch.id,
             "clinical_notes": "Duplicate test notes",
         }
 
@@ -243,7 +249,7 @@ class CreateReferralTestCase(BaseTestCase):
             "patient_full_name_or_id": "John Doe",
             "patient_contact_number": "0987654321",
             "tests": [other_test.id],  # Test not available at self.facility
-            "facility_id": self.facility.id,
+            "branch_id": self.branch.id,
             "clinical_notes": "Test notes",
         }
 

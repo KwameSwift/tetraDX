@@ -23,15 +23,17 @@ class Facility(models.Model):
         null=True,
         blank=True,
     )
-    users = models.ManyToManyField(
-        User,
-        related_name="facilities",
-        help_text="Users associated with the facility",
-        blank=True,
-    )
     contact_number = models.CharField(
         max_length=15,
         help_text="Contact number of the laboratory",
+        null=True,
+        blank=True,
+    )
+    admin = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="facility_admin",
+        help_text="Administrator of the facility",
         null=True,
         blank=True,
     )
@@ -47,6 +49,73 @@ class Facility(models.Model):
 
     def __str__(self):
         return f"{self.name}"
+
+
+class FacilityBranch(models.Model):
+    facility = models.ForeignKey(
+        Facility,
+        on_delete=models.CASCADE,
+        related_name="branches",
+        help_text="Facility to which this branch belongs",
+        null=True,
+        blank=True,
+    )
+    name = models.CharField(
+        max_length=255,
+        help_text="Name of the facility branch",
+        null=True,
+        blank=True,
+    )
+    created_at = models.DateTimeField(
+        auto_now_add=True, help_text="Facility branch creation timestamp"
+    )
+    is_active = models.BooleanField(
+        default=True, help_text="Indicates if the branch is active"
+    )
+
+    class Meta:
+        db_table = "Facility_Branch"
+        verbose_name = "Facility Branch"
+        verbose_name_plural = "Facility Branches"
+        ordering = ["name"]
+
+    def __str__(self):
+        return f"{self.facility.name} - {self.name}"
+
+
+class BranchTechnician(models.Model):
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="branch_technicians",
+        help_text="Lab technician assigned to the branch",
+        null=True,
+        blank=True,
+    )
+    branch = models.ForeignKey(
+        FacilityBranch,
+        on_delete=models.CASCADE,
+        related_name="technicians",
+        help_text="Facility branch to which the technician is assigned",
+        null=True,
+        blank=True,
+    )
+    is_admin = models.BooleanField(
+        default=False,
+        help_text="Indicates if the technician has admin privileges at the branch",
+    )
+    assigned_at = models.DateTimeField(
+        auto_now_add=True, help_text="Timestamp when the technician was assigned"
+    )
+
+    class Meta:
+        db_table = "Branch_Technician"
+        verbose_name = "Branch Technician"
+        verbose_name_plural = "Branch Technicians"
+        unique_together = ("user", "branch")
+
+    def __str__(self):
+        return f"{self.user.full_name} - {self.branch.name}"
 
 
 class TestType(models.Model):
@@ -174,11 +243,11 @@ class Referral(models.Model):
         editable=False,
         default=generate_referral_id,
     )
-    facility = models.ForeignKey(
-        Facility,
+    facility_branch = models.ForeignKey(
+        FacilityBranch,
         on_delete=models.CASCADE,
         related_name="referrals",
-        help_text="Facility to which the patient is referred",
+        help_text="Facility branch to which the patient is referred",
         null=True,
         blank=True,
     )
@@ -275,11 +344,14 @@ class ReferralTest(models.Model):
     def clean(self):
         """Validate that the test's TestType is offered by the referral's facility"""
         super().clean()
-        if self.referral.facility and self.test.test_type:
-            if not self.test.test_type.facility == self.referral.facility:
+        if self.referral.facility_branch and self.test.test_type:
+            if (
+                not self.test.test_type.facility
+                == self.referral.facility_branch.facility
+            ):
                 raise ValidationError(
                     f"Test '{self.test.name}' (type: {self.test.test_type.name}) "
-                    f"is not available at facility '{self.referral.facility.name}'"
+                    f"is not available at branch '{self.referral.facility_branch.name}'"
                 )
 
     def save(self, *args, **kwargs):

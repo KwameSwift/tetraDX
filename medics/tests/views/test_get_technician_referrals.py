@@ -3,7 +3,16 @@ from django.urls import reverse_lazy
 
 from _tetradx import BaseTestCase
 from authentication.models import UserType
-from medics.models import Facility, Patient, Referral, ReferralTest, Test, TestType
+from medics.models import (
+    BranchTechnician,
+    Facility,
+    FacilityBranch,
+    Patient,
+    Referral,
+    ReferralTest,
+    Test,
+    TestType,
+)
 
 User = get_user_model()
 
@@ -26,13 +35,17 @@ class GetTechnicianReferralsTestCase(BaseTestCase):
         self.tech_user.set_password("TestPass123!")
         self.tech_user.save()
 
-        # Create facility
+        # Create facility and branch
         self.facility = Facility.objects.create(name="Test Lab")
-        self.facility.users.add(self.tech_user)
+        self.branch = FacilityBranch.objects.create(
+            facility=self.facility, name="Main Branch"
+        )
+        BranchTechnician.objects.create(user=self.tech_user, branch=self.branch)
 
         # Create test type and patient
-        self.test_type = TestType.objects.create(name="Blood Test")
-        self.facility.test_types.add(self.test_type)
+        self.test_type = TestType.objects.create(
+            name="Blood Test", facility=self.facility
+        )
         self.test = Test.objects.create(
             name="Complete Blood Count", test_type=self.test_type
         )
@@ -43,7 +56,7 @@ class GetTechnicianReferralsTestCase(BaseTestCase):
         # Create referral to the facility
         self.referral = Referral.objects.create(
             patient=self.patient,
-            facility=self.facility,
+            facility_branch=self.branch,
             referred_by=self.tech_user,  # Even though tech can't refer, for test
         )
         # Create ReferralTest to link the test to the referral
@@ -124,7 +137,7 @@ class GetTechnicianReferralsTestCase(BaseTestCase):
             user_type=UserType.MEDICAL_PRACTITIONER.value,
         )
         referral2 = Referral.objects.create(
-            patient=patient2, facility=self.facility, referred_by=doctor
+            patient=patient2, facility_branch=self.branch, referred_by=doctor
         )
         ReferralTest.objects.create(referral=referral2, test=self.test)
 
@@ -154,7 +167,7 @@ class GetTechnicianReferralsTestCase(BaseTestCase):
             full_name_or_id="Alice Brown", contact_number="3333333333"
         )
         referral2 = Referral.objects.create(
-            patient=patient2, facility=self.facility, referred_by=doctor
+            patient=patient2, facility_branch=self.branch, referred_by=doctor
         )
         ReferralTest.objects.create(referral=referral2, test=self.test)
 
@@ -179,7 +192,7 @@ class GetTechnicianReferralsTestCase(BaseTestCase):
             full_name_or_id="Bob Wilson", contact_number="4444444444"
         )
         referral2 = Referral.objects.create(
-            patient=patient2, facility=self.facility, referred_by=self.tech_user
+            patient=patient2, facility_branch=self.branch, referred_by=self.tech_user
         )
         ReferralTest.objects.create(referral=referral2, test=test2)
 
@@ -201,14 +214,13 @@ class GetTechnicianReferralsTestCase(BaseTestCase):
         Test search functionality by test type name.
         """
         # Create another test type and referral
-        test_type2 = TestType.objects.create(name="Imaging")
-        self.facility.test_types.add(test_type2)
+        test_type2 = TestType.objects.create(name="Imaging", facility=self.facility)
         test2 = Test.objects.create(name="CT Scan", test_type=test_type2)
         patient2 = Patient.objects.create(
             full_name_or_id="Carol Davis", contact_number="5555555555"
         )
         referral2 = Referral.objects.create(
-            patient=patient2, facility=self.facility, referred_by=self.tech_user
+            patient=patient2, facility_branch=self.branch, referred_by=self.tech_user
         )
         ReferralTest.objects.create(referral=referral2, test=test2)
 
@@ -265,7 +277,7 @@ class GetTechnicianReferralsTestCase(BaseTestCase):
                 contact_number=f"600000000{i}",
             )
             referral = Referral.objects.create(
-                patient=patient, facility=self.facility, referred_by=self.tech_user
+                patient=patient, facility_branch=self.branch, referred_by=self.tech_user
             )
             ReferralTest.objects.create(referral=referral, test=self.test)
 

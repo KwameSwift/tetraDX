@@ -3,7 +3,7 @@ from django.urls import reverse_lazy
 
 from _tetradx import BaseTestCase
 from authentication.models import UserType
-from medics.models import Facility, Test, TestType
+from medics.models import BranchTechnician, Facility, FacilityBranch, Test, TestType
 
 User = get_user_model()
 
@@ -26,9 +26,12 @@ class AddTestTypesTestCase(BaseTestCase):
         self.tech_user.set_password("TestPass123!")
         self.tech_user.save()
 
-        # Create facility and associate with tech user
+        # Create facility, branch and associate with tech user
         self.facility = Facility.objects.create(name="Test Lab")
-        self.facility.users.add(self.tech_user)
+        self.branch = FacilityBranch.objects.create(
+            facility=self.facility, name="Main Branch"
+        )
+        BranchTechnician.objects.create(user=self.tech_user, branch=self.branch)
 
         # Create practitioner user
         self.pract_user = User.objects.create_user(

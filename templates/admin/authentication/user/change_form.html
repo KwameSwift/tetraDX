@@ -1,0 +1,157 @@
+{% extends "admin/change_form.html" %}
+
+{% block extrahead %}
+{{ block.super }}
+<style>
+.password-wrapper {
+    position: relative;
+    display: block;
+    max-width: 320px;
+}
+.password-toggle-btn {
+    position: absolute;
+    right: 5px;
+    top: 3px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 5px 8px;
+    color: #666;
+    font-size: 16px;
+    z-index: 10;
+    line-height: 1;
+    height: 28px;
+}
+.password-toggle-btn:hover {
+    color: #333;
+}
+.password-wrapper input[type="password"],
+.password-wrapper input[type="text"] {
+    padding-right: 35px !important;
+    box-sizing: border-box;
+}
+</style>
+<script type="text/javascript">
+(function($) {
+    $(document).ready(function() {
+        // Password toggle functionality
+        function setupPasswordToggle(passwordFieldId) {
+            var passwordField = $('#' + passwordFieldId);
+            if (passwordField.length && !passwordField.parent().hasClass('password-wrapper')) {
+                // Wrap the password field in a container
+                passwordField.wrap('<div class="password-wrapper"></div>');
+                var wrapper = passwordField.parent('.password-wrapper');
+                
+                // Add toggle button
+                var toggleBtn = $('<button type="button" class="password-toggle-btn" title="Show password">👁️</button>');
+                wrapper.append(toggleBtn);
+                
+                // Toggle functionality
+                toggleBtn.on('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (passwordField.attr('type') === 'password') {
+                        passwordField.attr('type', 'text');
+                        toggleBtn.text('🙈');
+                        toggleBtn.attr('title', 'Hide password');
+                    } else {
+                        passwordField.attr('type', 'password');
+                        toggleBtn.text('👁️');
+                        toggleBtn.attr('title', 'Show password');
+                    }
+                });
+            }
+        }
+        
+        // Setup toggles for both password fields with slight delay to ensure DOM is ready
+        setTimeout(function() {
+            setupPasswordToggle('id_password1');
+            setupPasswordToggle('id_password2');
+        }, 100);
+        
+        // Facility and branches functionality
+        var facilityField = $('#id_facility');
+        var branchesContainer = $('#id_branches').closest('.form-row');
+        
+        if (facilityField.length && branchesContainer.length) {
+            // Store initially selected branches
+            var initiallySelectedBranches = [];
+            $('#id_branches input[type="checkbox"]:checked').each(function() {
+                initiallySelectedBranches.push($(this).val());
+            });
+            
+            // Function to update branch checkboxes based on selected facility
+            function updateBranches(preserveSelection) {
+                var facilityId = facilityField.val();
+                
+                if (!facilityId) {
+                    // Hide and clear branches if no facility selected
+                    branchesContainer.hide();
+                    $('#id_branches input[type="checkbox"]').prop('checked', false);
+                    return;
+                }
+                
+                // Show branch container
+                branchesContainer.show();
+                
+                // Fetch branches via AJAX
+                $.ajax({
+                    url: '{% url "admin:facility-branches" %}',
+                    data: {
+                        'facility_id': facilityId
+                    },
+                    success: function(data) {
+                        var branchesDiv = $('#id_branches');
+                        
+                        // Get currently selected values before clearing
+                        var currentlySelected = [];
+                        if (preserveSelection) {
+                            branchesDiv.find('input[type="checkbox"]:checked').each(function() {
+                                currentlySelected.push($(this).val());
+                            });
+                        }
+                        
+                        // Use initial selection on first load, otherwise use current
+                        var selectedBranches = preserveSelection ? currentlySelected : initiallySelectedBranches;
+                        
+                        branchesDiv.empty();
+                        
+                        if (data.branches && data.branches.length > 0) {
+                            data.branches.forEach(function(branch) {
+                                var branchIdStr = branch.id.toString();
+                                var isChecked = selectedBranches.indexOf(branchIdStr) !== -1 || 
+                                               selectedBranches.indexOf(branch.id) !== -1;
+                                var checkedAttr = isChecked ? ' checked' : '';
+                                
+                                var checkboxHtml = '<label><input type="checkbox" name="branches" value="' + 
+                                    branch.id + '" id="id_branches_' + branch.id + '"' + checkedAttr + '> ' + 
+                                    branch.name + '</label><br>';
+                                branchesDiv.append(checkboxHtml);
+                            });
+                        } else {
+                            branchesDiv.html('<p>No branches available for this facility</p>');
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        console.error('Failed to load branches:', error);
+                        $('#id_branches').html('<p style="color: red;">Error loading branches</p>');
+                    }
+                });
+            }
+            
+            // Trigger on facility change - preserve selection when user changes facility
+            facilityField.on('change', function() {
+                updateBranches(true);
+            });
+            
+            // Initial load if facility is already selected
+            if (facilityField.val()) {
+                updateBranches(false);  // Don't preserve on initial load, use initial values
+            } else {
+                branchesContainer.hide();
+            }
+        }
+    });
+})(django.jQuery);
+</script>
+{% endblock %}

@@ -55,7 +55,9 @@ class User(AbstractUser):
         ordering = ["-created_at"]
 
     def __str__(self):
-        return f"{self.full_name} ({self.facilities.all().first().name if self.facilities.exists() else 'No Facility'})"
+        if self.full_name:
+            return self.full_name
+        return self.username or self.email
 
     def save(self, *args, **kwargs):
         # If full_name is provided and is a string, set username to a lowercased,

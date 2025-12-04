@@ -1,8 +1,11 @@
 from django.urls import path
 
 from medics.views.medics_views import (
+    AddLabTechnicianView,
     CreateReferralView,
+    FacilityBranchView,
     GetAndUpdateReferralView,
+    GetBranchView,
     GetFacilitiesView,
     GetPractitionerReferralsView,
     GetTechnicianReferralsView,
@@ -20,6 +23,12 @@ urlpatterns = [
         GetTestTypesByFacilityView.as_view(),
         name="get-test-types-by-facility",
     ),
+    # Get Branches by Facility
+    path(
+        "facilities/<str:facility_id>/branches",
+        GetBranchView.as_view(),
+        name="get-branches-by-facility",
+    ),
     # Get Tests by Test Type
     path(
         "test-types/<str:test_type_id>/tests",
@@ -31,6 +40,18 @@ urlpatterns = [
         "facilities",
         GetFacilitiesView.as_view(),
         name="get-facilities",
+    ),
+    # Add Branch
+    path(
+        "branches/add",
+        FacilityBranchView.as_view(),
+        name="add-branch",
+    ),
+    # Get All Branches
+    path(
+        "branches/deactivate/<str:branch_id>",
+        FacilityBranchView.as_view(),
+        name="get-branches",
     ),
     # Create Referral
     path(
@@ -58,5 +79,11 @@ urlpatterns = [
         "referral-tests/<str:referral_test_id>/status",
         UpdateTestStatusView.as_view(),
         name="update-test-status",
+    ),
+    # Add Lab Technician
+    path(
+        "lab-technicians/add",
+        AddLabTechnicianView.as_view(),
+        name="add-lab-technician",
     ),
 ]

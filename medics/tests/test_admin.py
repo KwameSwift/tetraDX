@@ -3,7 +3,16 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase
 
 from medics.admin import ReferralAdmin
-from medics.models import Facility, Patient, Referral, ReferralTest, Test, TestType
+from medics.models import (
+    BranchTechnician,
+    Facility,
+    FacilityBranch,
+    Patient,
+    Referral,
+    ReferralTest,
+    Test,
+    TestType,
+)
 
 User = get_user_model()
 
@@ -25,7 +34,11 @@ class ReferralAdminTestCase(TestCase):
             user_type="Medical Practitioner",
         )
         self.facility = Facility.objects.create(name="Test Lab")
-        self.facility.users.add(self.user)
+        self.branch = FacilityBranch.objects.create(
+            facility=self.facility, name="Main Branch"
+        )
+        BranchTechnician.objects.create(user=self.user, branch=self.branch)
+
         self.test_type = TestType.objects.create(
             name="Blood Test", facility=self.facility
         )
@@ -37,13 +50,11 @@ class ReferralAdminTestCase(TestCase):
         )
         self.referral = Referral.objects.create(
             patient=self.patient,
-            facility=self.facility,
+            facility_branch=self.branch,
             referred_by=self.user,
             status="Pending",
         )
         # Create ReferralTest to link the test to the referral
-        from medics.models import ReferralTest
-
         ReferralTest.objects.create(
             referral=self.referral,
             test=self.test,
@@ -58,7 +69,8 @@ class ReferralAdminTestCase(TestCase):
             "patient_name",
             "test_types",
             "tests",
-            "facility",
+            "branch_name",
+            "facility_name",
             "status_display",
             "referred_at",
         )
@@ -78,7 +90,8 @@ class ReferralAdminTestCase(TestCase):
         """
         expected = (
             "patient__full_name_or_id",
-            "facility__name",
+            "facility_branch__name",
+            "facility_branch__facility__name",
             "referral_tests__test__name",
             "referral_tests__test__test_type__name",
         )
@@ -88,7 +101,12 @@ class ReferralAdminTestCase(TestCase):
         """
         Test that list_filter includes the expected fields.
         """
-        expected = ("status", "referred_at", "facility__name")
+        expected = (
+            "status",
+            "referred_at",
+            "facility_branch__facility__name",
+            "facility_branch__name",
+        )
         self.assertEqual(self.admin.list_filter, expected)
 
     def test_ordering(self):

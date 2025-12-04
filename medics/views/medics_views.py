@@ -10,10 +10,10 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 from rest_framework_simplejwt.authentication import JWTAuthentication
 
-from _tetradx.helpers import api_exception
+from _tetradx.helpers import BaseAPIView, api_exception
 from authentication.models import UserType
-from medics.models import Facility, Referral, ReferralTest, Test, TestStatus, TestType
-from medics.serializers import CreateReferralSerializer, UpdateReferralStatusSerializer
+from medics import models, serializers
+from medics.helpers import get_user_branches, referral_permission_required
 
 logger = logging.getLogger(__name__)
 User = get_user_model()
@@ -25,12 +25,35 @@ class GetFacilitiesView(APIView):
     """
 
     def get(self, request, *args, **kwargs):
-        facilities = Facility.objects.all().values("id", "name")
+        facilities = models.Facility.objects.all().values("id", "name")
         return JsonResponse(
             {
                 "status": "success",
                 "message": "Facilities retrieved successfully",
                 "data": list(facilities),
+            },
+            safe=False,
+            status=status.HTTP_200_OK,
+        )
+
+
+class GetBranchView(APIView):
+    """
+    Retrieve all branches.
+    """
+
+    def get(self, request, *args, **kwargs):
+        facility_id = kwargs.get("facility_id")
+
+        branches = models.FacilityBranch.objects.filter(
+            facility__id=facility_id
+        ).values("id", "name")
+
+        return JsonResponse(
+            {
+                "status": "success",
+                "message": "Branches retrieved successfully",
+                "data": list(branches),
             },
             safe=False,
             status=status.HTTP_200_OK,
@@ -45,10 +68,10 @@ class GetTestTypesByFacilityView(APIView):
     def get(self, request, *args, **kwargs):
         facility_id = kwargs.get("facility_id")
         try:
-            facility = Facility.objects.get(id=facility_id)
+            facility = models.Facility.objects.get(id=facility_id)
             # Get test types for the facility
             test_types = (
-                TestType.objects.filter(facility=facility)
+                models.TestType.objects.filter(facility=facility)
                 .values("id", "name")
                 .order_by("name")
             )
@@ -61,7 +84,7 @@ class GetTestTypesByFacilityView(APIView):
                 safe=False,
                 status=status.HTTP_200_OK,
             )
-        except Facility.DoesNotExist:
+        except models.Facility.DoesNotExist:
             raise api_exception("Facility with the given ID does not exist.")
 
 
@@ -75,13 +98,13 @@ class GetTestsByTestTypeView(APIView):
 
         # Check if test type exists
         try:
-            test_type = TestType.objects.get(id=test_type_id)
-        except TestType.DoesNotExist:
+            test_type = models.TestType.objects.get(id=test_type_id)
+        except models.TestType.DoesNotExist:
             raise api_exception("Test type with the given ID does not exist.")
 
         # Get tests for a specific test type
         tests = (
-            Test.objects.filter(test_type=test_type)
+            models.Test.objects.filter(test_type=test_type)
             .distinct()
             .values("id", "name")
             .order_by("name")
@@ -97,7 +120,7 @@ class GetTestsByTestTypeView(APIView):
         )
 
 
-class CreateReferralView(APIView):
+class CreateReferralView(BaseAPIView):
     """
     Create a new referral.
     """
@@ -112,7 +135,9 @@ class CreateReferralView(APIView):
         if user.user_type != UserType.MEDICAL_PRACTITIONER.value:
             raise api_exception("Only medical practitioners can create referrals.")
 
-        serializer = CreateReferralSerializer(data=data, context={"user": user})
+        serializer = serializers.CreateReferralSerializer(
+            data=data, context={"user": user}
+        )
         if serializer.is_valid():
             # Save referral
             referral_data = serializer.save()
@@ -130,7 +155,7 @@ class CreateReferralView(APIView):
         raise api_exception(serializer.errors)
 
 
-class GetAndUpdateReferralView(APIView):
+class GetAndUpdateReferralView(BaseAPIView):
     """
     Get and Update the status of an existing referral.
     """
@@ -138,27 +163,19 @@ class GetAndUpdateReferralView(APIView):
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated]
 
+    @referral_permission_required()
     def put(self, request, *args, **kwargs):
         data = request.data
-        user = request.user
         referral_id = kwargs.get("referral_id")
 
         data["referral_id"] = referral_id
 
-        serializer = UpdateReferralStatusSerializer(data=data)
+        serializer = serializers.UpdateReferralStatusSerializer(data=data)
 
         if serializer.is_valid():
             # Update referral status
             validated_data = serializer.validated_data
             referral = validated_data["referral"]
-
-            # Check permissions
-            is_doctor = referral.referred_by == user
-            is_facility_worker = referral.facility in user.facilities.all()
-            if not is_doctor and not is_facility_worker:
-                raise api_exception(
-                    "You do not have permission to update this referral."
-                )
 
             # Update referral
             referral_data = serializer.update(referral, validated_data)
@@ -174,24 +191,20 @@ class GetAndUpdateReferralView(APIView):
         # Handle validation errors
         raise api_exception(serializer.errors)
 
+    @referral_permission_required()
     def get(self, request, *args, **kwargs):
         referral_id = kwargs.get("referral_id")
-        user = request.user
 
         try:
-            referral = Referral.objects.select_related(
-                "facility", "patient", "referred_by"
+            referral = models.Referral.objects.select_related(
+                "facility_branch", "patient", "referred_by"
             ).get(id=referral_id)
-            is_doctor = referral.referred_by == user
-            is_facility_worker = referral.facility in user.facilities.all()
-            if not is_doctor and not is_facility_worker:
-                raise api_exception("You do not have permission to view this referral.")
-        except Referral.DoesNotExist:
-            raise api_exception("Referral with the given ID does not exist.")
+        except models.Referral.DoesNotExist:
+            raise api_exception("Referral does not exist.")
 
         # Get tests associated with the referral
         referral_tests = (
-            ReferralTest.objects.filter(referral=referral)
+            models.ReferralTest.objects.filter(referral=referral)
             .select_related("test")
             .prefetch_related("test__test_type")
         )
@@ -202,7 +215,8 @@ class GetAndUpdateReferralView(APIView):
                 "message": "Referral retrieved successfully",
                 "data": {
                     "referral_id": referral.id,
-                    "facility": referral.facility.name,
+                    "facility_name": referral.facility_branch.facility.name,
+                    "branch_name": referral.facility_branch.name,
                     "patient_name_or_id": referral.patient.full_name_or_id,
                     "referring_doctor": referral.referred_by.full_name,
                     "referred_at": referral.referred_at,
@@ -226,7 +240,7 @@ class GetAndUpdateReferralView(APIView):
         )
 
 
-class GetTechnicianReferralsView(APIView):
+class GetTechnicianReferralsView(BaseAPIView):
     """
     Retrieve all referrals received by the laboratory.
     """
@@ -245,21 +259,24 @@ class GetTechnicianReferralsView(APIView):
         if not user.user_type == UserType.LAB_TECHNICIAN.value:
             raise api_exception("You do not have permission to view these referrals.")
 
-        # Get all facilities the user is linked to
-        facilities = user.facilities.all()
+        user_branches = get_user_branches(user)
 
-        # Base queryset with optimized select/prefetch
-        referrals_qs = (
-            Referral.objects.filter(facility__in=facilities)
-            .select_related("patient", "facility", "referred_by")
-            .prefetch_related("referral_tests__test__test_type")
-        )
+        if not user_branches:
+            referrals_qs = models.Referral.objects.none()
+        else:
+            # Base queryset with optimized select/prefetch
+            referrals_qs = (
+                models.Referral.objects.filter(facility_branch__in=user_branches)
+                .select_related("patient", "facility_branch", "referred_by")
+                .prefetch_related("referral_tests__test__test_type")
+            )
 
         # Apply search filters
         if search_query:
             referrals_qs = referrals_qs.filter(
                 Q(patient__full_name_or_id__icontains=search_query)
-                | Q(facility__name__icontains=search_query)
+                | Q(facility_branch__name__icontains=search_query)
+                | Q(facility_branch__facility__name__icontains=search_query)
                 | Q(referred_by__full_name__icontains=search_query)
                 | Q(referral_tests__test__name__icontains=search_query)
                 | Q(referral_tests__test__test_type__name__icontains=search_query)
@@ -280,7 +297,8 @@ class GetTechnicianReferralsView(APIView):
                 "referral_id": ref.id,
                 "status": ref.status,
                 "patient_name_or_id": ref.patient.full_name_or_id,
-                "facility_name": ref.facility.name,
+                "facility_name": ref.facility_branch.facility.name,
+                "branch_name": ref.facility_branch.name,
                 "clinical_notes": ref.clinical_notes,
                 "referral_doctor": ref.referred_by.full_name,
                 "referred_at": ref.referred_at,
@@ -332,7 +350,7 @@ class GetTechnicianReferralsView(APIView):
         )
 
 
-class GetPractitionerReferralsView(APIView):
+class GetPractitionerReferralsView(BaseAPIView):
     """
     Retrieve all referrals made by the Practitioner.
     """
@@ -351,8 +369,8 @@ class GetPractitionerReferralsView(APIView):
 
         # Get referrals with optimized queries
         referrals_qs = (
-            Referral.objects.filter(referred_by=user)
-            .select_related("patient", "facility", "referred_by")
+            models.Referral.objects.filter(referred_by=user)
+            .select_related("patient", "facility_branch", "referred_by")
             .prefetch_related("referral_tests__test__test_type")
             .order_by("-referred_at")
         )
@@ -361,7 +379,8 @@ class GetPractitionerReferralsView(APIView):
         if search_query:
             referrals_qs = referrals_qs.filter(
                 Q(patient__full_name_or_id__icontains=search_query)
-                | Q(facility__name__icontains=search_query)
+                | Q(facility_branch__name__icontains=search_query)
+                | Q(facility_branch__facility__name__icontains=search_query)
                 | Q(referred_by__full_name__icontains=search_query)
                 | Q(referral_tests__test__name__icontains=search_query)
                 | Q(referral_tests__test__test_type__name__icontains=search_query)
@@ -369,9 +388,15 @@ class GetPractitionerReferralsView(APIView):
 
         # Calculate summary statistics before converting to list
         total_referrals = referrals_qs.count()
-        total_completed = referrals_qs.filter(status=TestStatus.COMPLETED.value).count()
-        total_pending = referrals_qs.filter(status=TestStatus.PENDING.value).count()
-        total_received = referrals_qs.filter(status=TestStatus.RECEIVED.value).count()
+        total_completed = referrals_qs.filter(
+            status=models.TestStatus.COMPLETED.value
+        ).count()
+        total_pending = referrals_qs.filter(
+            status=models.TestStatus.PENDING.value
+        ).count()
+        total_received = referrals_qs.filter(
+            status=models.TestStatus.RECEIVED.value
+        ).count()
 
         data_summary = {
             "total_referrals": total_referrals,
@@ -385,7 +410,8 @@ class GetPractitionerReferralsView(APIView):
             {
                 "referral_id": ref.id,
                 "patient_name_or_id": ref.patient.full_name_or_id,
-                "facility_name": ref.facility.name,
+                "facility_name": ref.facility_branch.facility.name,
+                "branch_name": ref.facility_branch.name,
                 "clinical_notes": ref.clinical_notes,
                 "status": ref.status,
                 "referred_at": ref.referred_at,
@@ -438,7 +464,7 @@ class GetPractitionerReferralsView(APIView):
         )
 
 
-class UpdateTestStatusView(APIView):
+class UpdateTestStatusView(BaseAPIView):
     """
     Update the status of a test within a referral.
     """
@@ -453,17 +479,20 @@ class UpdateTestStatusView(APIView):
 
         try:
             referral_test = (
-                ReferralTest.objects.select_related(
-                    "referral__facility", "referral__referred_by", "test"
+                models.ReferralTest.objects.select_related(
+                    "referral__facility_branch", "referral__referred_by", "test"
                 )
                 .prefetch_related("test__test_type")
                 .get(id=referral_test_id)
             )
             referral = referral_test.referral
+            branch = referral.facility_branch
 
             # Check permissions
             is_doctor = referral.referred_by == user
-            is_facility_worker = referral.facility in user.facilities.all()
+            is_facility_worker = models.BranchTechnician.objects.filter(
+                branch=branch, user=user
+            ).exists()
 
             if not is_doctor and not is_facility_worker:
                 raise api_exception(
@@ -471,7 +500,7 @@ class UpdateTestStatusView(APIView):
                 )
 
             # Validate new status
-            valid_statuses = [test_status.value for test_status in TestStatus]
+            valid_statuses = [test_status.value for test_status in models.TestStatus]
             if new_status not in valid_statuses:
                 raise api_exception("Invalid status value.")
 
@@ -482,7 +511,7 @@ class UpdateTestStatusView(APIView):
             referral_test.status = new_status
             referral.updated_at = timezone.now()
 
-            if new_status == TestStatus.COMPLETED.value:
+            if new_status == models.TestStatus.COMPLETED.value:
                 referral_test.completed_at = timezone.now()
 
             referral_test.save()
@@ -504,7 +533,140 @@ class UpdateTestStatusView(APIView):
                     },
                 },
                 status=status.HTTP_200_OK,
+                safe=False,
             )
 
-        except ReferralTest.DoesNotExist:
+        except models.ReferralTest.DoesNotExist:
             raise api_exception("Referral test with the given ID does not exist.")
+
+
+class FacilityBranchView(BaseAPIView):
+    """
+    Add a new facility branch.
+    """
+
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, *args, **kwargs):
+        user = request.user
+
+        facility_branch = models.BranchTechnician.objects.filter(
+            user__id=user.id
+        ).first()
+
+        facility = facility_branch.branch.facility if facility_branch else None
+
+        if not facility:
+            raise api_exception(
+                "Unauthorized: User is not associated with any facility.",
+            )
+
+        if not facility.admin == user:
+            raise api_exception(
+                "Unauthorized: Only facility admins can add branches.",
+            )
+
+        serializer = serializers.FacilityBranchSerializer(
+            data=request.data, context={"facility": facility}
+        )
+
+        if serializer.is_valid():
+            branch_data = serializer.save()
+
+            return JsonResponse(
+                {
+                    "status": "success",
+                    "message": "Facility branch added successfully",
+                    "data": branch_data,
+                },
+                status=status.HTTP_201_CREATED,
+                safe=False,
+            )
+
+        # Handle validation errors
+        raise api_exception(serializer.errors)
+
+    def delete(self, request, *args, **kwargs):
+        user = request.user
+        branch_id = self.kwargs.get("branch_id")
+
+        technician = models.BranchTechnician.objects.filter(user__id=user.id).first()
+
+        facility = (
+            technician.branch.facility if technician and technician.branch else None
+        )
+
+        if not facility:
+            raise api_exception(
+                "Unauthorized: User is not associated with any facility.",
+            )
+
+        if not facility.admin == user:
+            raise api_exception(
+                "Unauthorized: Only facility admins can delete branches.",
+            )
+
+        try:
+            branch = models.FacilityBranch.objects.get(id=branch_id, facility=facility)
+            branch.is_active = False
+            branch.save()
+
+            return JsonResponse(
+                {
+                    "status": "success",
+                    "message": "Facility branch deleted successfully",
+                },
+                status=status.HTTP_200_OK,
+                safe=False,
+            )
+        except models.FacilityBranch.DoesNotExist:
+            raise api_exception("Facility branch with the given ID does not exist.")
+
+
+class AddLabTechnicianView(BaseAPIView):
+    """
+    Add a lab technician to a facility branch.
+    """
+
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, *args, **kwargs):
+        user = request.user
+
+        technician = models.BranchTechnician.objects.filter(user__id=user.id).first()
+
+        facility = (
+            technician.branch.facility if technician and technician.branch else None
+        )
+        if not facility:
+            raise api_exception(
+                "Unauthorized: User is not associated with any facility.",
+            )
+
+        if not facility.admin == user:
+            raise api_exception(
+                "Unauthorized: Only facility admins can add lab technicians.",
+            )
+
+        serializer = serializers.LabTechnicianSerializer(
+            data=request.data, context={"facility": facility}
+        )
+
+        if serializer.is_valid():
+            # Save lab technician
+            technician_data = serializer.save()
+
+            return JsonResponse(
+                {
+                    "status": "success",
+                    "message": "Lab technician added successfully",
+                    "data": technician_data,
+                },
+                status=status.HTTP_201_CREATED,
+                safe=False,
+            )
+
+        # Handle validation errors
+        raise api_exception(serializer.errors)

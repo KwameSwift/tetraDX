@@ -2,7 +2,16 @@ from django.contrib.auth import get_user_model
 from django.urls import reverse_lazy
 
 from _tetradx import BaseTestCase
-from medics.models import Facility, Patient, Referral, ReferralTest, Test, TestType
+from medics.models import (
+    BranchTechnician,
+    Facility,
+    FacilityBranch,
+    Patient,
+    Referral,
+    ReferralTest,
+    Test,
+    TestType,
+)
 
 User = get_user_model()
 
@@ -31,11 +40,15 @@ class GetAndUpdateReferralTestCase(BaseTestCase):
         self.facility_user.set_password("TestPass123!")
         self.facility_user.save()
 
-        # Create facility and test type
+        # Create facility, branch and test type
         self.facility = Facility.objects.create(name="Test Lab")
-        self.facility.users.add(self.facility_user)
-        self.test_type = TestType.objects.create(name="Blood Test")
-        self.facility.test_types.add(self.test_type)
+        self.branch = FacilityBranch.objects.create(
+            facility=self.facility, name="Main Branch"
+        )
+        BranchTechnician.objects.create(user=self.facility_user, branch=self.branch)
+        self.test_type = TestType.objects.create(
+            name="Blood Test", facility=self.facility
+        )
         self.test = Test.objects.create(
             name="Complete Blood Count", test_type=self.test_type
         )
@@ -48,7 +61,7 @@ class GetAndUpdateReferralTestCase(BaseTestCase):
         # Create referral
         self.referral = Referral.objects.create(
             patient=self.patient,
-            facility=self.facility,
+            facility_branch=self.branch,
             referred_by=self.test_user,
         )
         # Create ReferralTest to link the test to the referral
@@ -132,7 +145,7 @@ class GetAndUpdateReferralTestCase(BaseTestCase):
             self.url,
             HTTP_AUTHORIZATION=f"Bearer {unauth_token}",
         )
-        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.status_code, 403)
 
     def test_get_referral_not_found(self):
         """
@@ -142,10 +155,13 @@ class GetAndUpdateReferralTestCase(BaseTestCase):
         url = reverse_lazy(
             "medics:get-update-referral", kwargs={"referral_id": "INVALIDID"}
         )
+        # Need to use client with raise_request_exception=False to properly test 400 errors
+        self.client.raise_request_exception = False
         response = self.client.get(
             url,
             HTTP_AUTHORIZATION=f"Bearer {self.access_token}",
         )
+        self.client.raise_request_exception = True
         self.assertEqual(response.status_code, 400)
 
     def test_update_referral_status_success(self):

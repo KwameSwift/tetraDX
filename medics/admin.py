@@ -1,6 +1,15 @@
 from django.contrib import admin
 
-from medics.models import Facility, Patient, Referral, ReferralTest, Test, TestType
+from medics.models import (
+    BranchTechnician,
+    Facility,
+    FacilityBranch,
+    Patient,
+    Referral,
+    ReferralTest,
+    Test,
+    TestType,
+)
 
 
 @admin.register(TestType)
@@ -19,9 +28,78 @@ class TestTypeAdmin(admin.ModelAdmin):
 
 @admin.register(Facility)
 class FacilityAdmin(admin.ModelAdmin):
-    list_display = ("id", "name", "contact_number", "created_at")
-    search_fields = ("name",)
+    list_display = ("id", "name", "contact_number", "admin_name", "created_at")
+    search_fields = ("name", "admin__full_name", "admin__email")
+    list_display_links = ("name",)
     ordering = ("-created_at",)
+
+    def admin_name(self, obj):
+        if obj.admin:
+            return obj.admin.full_name or obj.admin.email
+        return None
+
+    admin_name.short_description = "Admin"
+
+
+@admin.register(FacilityBranch)
+class FacilityBranchAdmin(admin.ModelAdmin):
+    list_display = ("name", "facility_name", "created_at")
+    search_fields = ("name", "facility__name")
+    list_display_links = ("name",)
+    list_filter = ("facility",)
+    ordering = ("-created_at",)
+
+    def facility_name(self, obj):
+        if obj.facility:
+            return obj.facility.name
+        return None
+
+    facility_name.short_description = "Facility"
+
+
+@admin.register(BranchTechnician)
+class BranchTechnicianAdmin(admin.ModelAdmin):
+    list_display = (
+        "user_name",
+        "phone_number",
+        "facility_name",
+        "branch_name",
+        "is_admin",
+        "assigned_at",
+    )
+    search_fields = (
+        "user__full_name",
+        "user__email",
+        "branch__name",
+        "branch__facility__name",
+    )
+    list_filter = ("is_admin", "branch__facility")
+    list_display_links = ("user_name",)
+    ordering = ("-assigned_at",)
+
+    def phone_number(self, obj):
+        if obj.user:
+            return obj.user.phone_number
+        return None
+
+    def user_name(self, obj):
+        if obj.user:
+            return obj.user.full_name or obj.user.email
+        return None
+
+    def branch_name(self, obj):
+        if obj.branch:
+            return obj.branch.name
+        return None
+
+    def facility_name(self, obj):
+        if obj.branch and obj.branch.facility:
+            return obj.branch.facility.name
+        return None
+
+    user_name.short_description = "Lab Technician"
+    branch_name.short_description = "Branch"
+    facility_name.short_description = "Facility"
 
 
 @admin.register(Patient)
@@ -38,18 +116,25 @@ class ReferralAdmin(admin.ModelAdmin):
         "patient_name",
         "test_types",
         "tests",
-        "facility",
+        "branch_name",
+        "facility_name",
         "status_display",
         "referred_at",
     )
 
     search_fields = (
         "patient__full_name_or_id",
-        "facility__name",
+        "facility_branch__name",
+        "facility_branch__facility__name",
         "referral_tests__test__name",
         "referral_tests__test__test_type__name",
     )
-    list_filter = ("status", "referred_at", "facility__name")
+    list_filter = (
+        "status",
+        "referred_at",
+        "facility_branch__facility__name",
+        "facility_branch__name",
+    )
     ordering = ("-referred_at",)
 
     # Add inline to show referral tests with their statuses
@@ -81,8 +166,15 @@ class ReferralAdmin(admin.ModelAdmin):
     def patient_name(self, obj):
         return obj.patient.full_name_or_id
 
+    def branch_name(self, obj):
+        if obj.facility_branch:
+            return obj.facility_branch.name
+        return None
+
     def facility_name(self, obj):
-        return obj.facility.name
+        if obj.facility_branch and obj.facility_branch.facility:
+            return obj.facility_branch.facility.name
+        return None
 
     def test_types(self, obj):
         test_types = set()
@@ -101,6 +193,8 @@ class ReferralAdmin(admin.ModelAdmin):
     status_display.short_description = "Status"
     test_types.short_description = "Test Types"
     tests.short_description = "Tests"
+    branch_name.short_description = "Branch"
+    facility_name.short_description = "Facility"
 
     patient_name.short_description = "Patient Name / ID"
 
@@ -132,7 +226,8 @@ class ReferralTestAdmin(admin.ModelAdmin):
     )
     search_fields = (
         "referral__id",
-        "referral__facility__name",
+        "referral__facility_branch__name",
+        "referral__facility_branch__facility__name",
         "test__name",
         "test__test_type__name",
     )
@@ -140,7 +235,8 @@ class ReferralTestAdmin(admin.ModelAdmin):
         "status",
         "created_at",
         "test__test_type__name",
-        "referral__facility__name",
+        "referral__facility_branch__facility__name",
+        "referral__facility_branch__name",
     )
     ordering = ("-created_at",)
 
@@ -148,7 +244,9 @@ class ReferralTestAdmin(admin.ModelAdmin):
         return obj.referral.id
 
     def facility_name(self, obj):
-        return obj.referral.facility.name
+        if obj.referral.facility_branch and obj.referral.facility_branch.facility:
+            return obj.referral.facility_branch.facility.name
+        return None
 
     def test_name(self, obj):
         return obj.test.name

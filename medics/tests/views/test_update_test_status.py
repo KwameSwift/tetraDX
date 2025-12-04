@@ -4,7 +4,9 @@ from django.urls import reverse_lazy
 from _tetradx import BaseTestCase
 from authentication.models import UserType
 from medics.models import (
+    BranchTechnician,
     Facility,
+    FacilityBranch,
     Patient,
     Referral,
     ReferralTest,
@@ -52,11 +54,15 @@ class UpdateTestStatusTestCase(BaseTestCase):
         self.unauthorized_user.set_password("TestPass123!")
         self.unauthorized_user.save()
 
-        # Create facility and test type
+        # Create facility, branch and test type
         self.facility = Facility.objects.create(name="Test Lab")
-        self.facility.users.add(self.technician)
-        self.test_type = TestType.objects.create(name="Blood Test")
-        self.facility.test_types.add(self.test_type)
+        self.branch = FacilityBranch.objects.create(
+            facility=self.facility, name="Main Branch"
+        )
+        BranchTechnician.objects.create(user=self.technician, branch=self.branch)
+        self.test_type = TestType.objects.create(
+            name="Blood Test", facility=self.facility
+        )
         self.test = Test.objects.create(
             name="Complete Blood Count", test_type=self.test_type
         )
@@ -69,7 +75,7 @@ class UpdateTestStatusTestCase(BaseTestCase):
         # Create referral
         self.referral = Referral.objects.create(
             patient=self.patient,
-            facility=self.facility,
+            facility_branch=self.branch,
             clinical_notes="Test referral",
             referred_by=self.doctor,
         )

@@ -5,7 +5,6 @@ from django.utils.translation import gettext as _
 from rest_framework import serializers
 
 from authentication.models import UserType
-from medics.models import Facility
 
 User = get_user_model()
 
@@ -54,8 +53,6 @@ def validate_strong_password(password):
 class RegisterSerializer(serializers.Serializer):
     full_name = serializers.CharField(max_length=255, required=True)
     phone_number = serializers.CharField(max_length=255, required=True)
-    user_type = serializers.CharField(write_only=True, min_length=8, required=False)
-    facility_id = serializers.IntegerField(required=False)
     password = serializers.CharField(
         write_only=True,
         required=True,
@@ -71,26 +68,8 @@ class RegisterSerializer(serializers.Serializer):
 
     def validate(self, attrs):
         phone_number = attrs.get("phone_number")
-        user_type = attrs.get("user_type")
-        facility_id = attrs.get("facility_id")
         password = attrs.get("password")
         confirm_password = attrs.get("confirm_password")
-
-        # Enforce facility_id required field for lab technicians
-        if user_type == "Lab Technician" and not facility_id:
-            raise serializers.ValidationError(
-                {"facility_id": "This field is required."}
-            )
-
-        # Validate facility_id
-        if facility_id:
-            try:
-                facility = Facility.objects.get(id=facility_id)
-                attrs["facility"] = facility
-            except Facility.DoesNotExist:
-                raise serializers.ValidationError(
-                    {"facility_id": "Invalid facility ID."}
-                )
 
         # Validate phone_number
         if User.objects.filter(phone_number=phone_number).exists():
@@ -98,38 +77,30 @@ class RegisterSerializer(serializers.Serializer):
                 {"phone_number": "A user with this phone number already exists."}
             )
 
-        # Validate user_type
-        if user_type and user_type not in UserType.values():
-            raise serializers.ValidationError({"user_type": "Invalid user type."})
-
         # Validate password match
         if password != confirm_password:
             raise serializers.ValidationError(
                 {"confirm_password": "Password and confirm password do not match."}
             )
 
+        attrs["user_type"] = UserType.MEDICAL_PRACTITIONER.value
+
         return attrs
 
     def create(self, validated_data):
-        facility = validated_data.get("facility")
         full_name = validated_data["full_name"]
         phone_number = validated_data["phone_number"]
         password = validated_data["password"]
+        user_type = validated_data.get("user_type")
 
         # Create User
         user = User.objects.create(
             full_name=full_name,
             phone_number=phone_number,
-            user_type=validated_data.get(
-                "user_type", UserType.MEDICAL_PRACTITIONER.value
-            ),
+            user_type=user_type,
         )
         user.set_password(password)
         user.save()
-
-        # Facility association can be handled here if needed
-        if facility:
-            facility.users.add(user)
 
         user_data = {
             "id": str(user.id),
@@ -137,15 +108,6 @@ class RegisterSerializer(serializers.Serializer):
             "phone_number": user.phone_number,
             "user_type": user.user_type,
         }
-
-        if facility:
-            user_data["facilities"] = [
-                {
-                    "id": str(facility.id),
-                    "name": facility.name,
-                }
-                for facility in user.facilities.all()
-            ]
 
         return user_data
 
@@ -172,3 +134,55 @@ class LoginSerializer(serializers.Serializer):
             )
 
         return attrs
+
+
+class ChangePasswordSerializer(serializers.Serializer):
+    current_password = serializers.CharField(
+        write_only=True,
+        required=True,
+        validators=[validate_strong_password],
+        style={"input_type": "password"},
+    )
+    new_password = serializers.CharField(
+        write_only=True,
+        required=True,
+        validators=[validate_strong_password],
+        style={"input_type": "password"},
+    )
+    confirm_new_password = serializers.CharField(
+        write_only=True,
+        required=True,
+        validators=[validate_strong_password],
+        style={"input_type": "password"},
+    )
+
+    def validate(self, attrs):
+        current_password = attrs.get("current_password")
+        new_password = attrs.get("new_password")
+        confirm_new_password = attrs.get("confirm_new_password")
+        user = self.context["user"]
+
+        # Validate current password
+        if not user.check_password(current_password):
+            raise serializers.ValidationError(
+                {"current_password": "Current password is incorrect."}
+            )
+
+        # Validate new password match
+        if new_password != confirm_new_password:
+            raise serializers.ValidationError(
+                {
+                    "confirm_new_password": "New password and confirm password do not match."
+                }
+            )
+
+        return attrs
+
+    def create(self, validated_data):
+        user = self.context["user"]
+        new_password = validated_data["new_password"]
+
+        user.set_password(new_password)
+        user.save()
+
+        return user

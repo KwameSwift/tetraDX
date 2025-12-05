@@ -5,18 +5,12 @@ from django.db import transaction
 from django.http import JsonResponse
 from django.utils import timezone
 from rest_framework import permissions, status
-from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
-from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from _tetradx.helpers import api_exception
 from authentication.models import UserType
-from authentication.serializers import (
-    ChangePasswordSerializer,
-    LoginSerializer,
-    RegisterSerializer,
-)
+from authentication.serializers import LoginSerializer, RegisterSerializer
 from medics.helpers import get_user_branches
 
 logger = logging.getLogger(__name__)
@@ -144,34 +138,3 @@ class LoginView(APIView):
                 "branches": branches,
             }
         )
-
-
-class ChangePasswordView(APIView):
-    """
-    Change password for authenticated users.
-    """
-
-    authentication_classes = [JWTAuthentication]
-    permission_classes = [IsAuthenticated]
-
-    def post(self, request, *args, **kwargs):
-        user = request.user
-        data = request.data
-
-        serializer = ChangePasswordSerializer(data=data, context={"user": user})
-
-        if serializer.is_valid():
-            # Change the user's password
-            serializer.save()
-
-            return JsonResponse(
-                {
-                    "status": "success",
-                    "message": "Password changed successfully.",
-                },
-                safe=False,
-                status=status.HTTP_200_OK,
-            )
-
-        # Raise validation errors
-        raise api_exception(serializer.errors)

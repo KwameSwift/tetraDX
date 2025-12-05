@@ -670,3 +670,36 @@ class AddLabTechnicianView(BaseAPIView):
 
         # Handle validation errors
         raise api_exception(serializer.errors)
+
+
+class ChangePasswordView(APIView):
+    """
+    Change password for authenticated users.
+    """
+
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, *args, **kwargs):
+        user = request.user
+        data = request.data
+
+        serializer = serializers.ChangePasswordSerializer(
+            data=data, context={"user": user}
+        )
+
+        if serializer.is_valid():
+            # Change the user's password
+            serializer.save()
+
+            return JsonResponse(
+                {
+                    "status": "success",
+                    "message": "Password changed successfully.",
+                },
+                safe=False,
+                status=status.HTTP_200_OK,
+            )
+
+        # Raise validation errors
+        raise api_exception(serializer.errors)

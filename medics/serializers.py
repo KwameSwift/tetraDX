@@ -99,8 +99,8 @@ class CreateReferralSerializer(serializers.Serializer):
 
 
 class UpdateReferralStatusSerializer(serializers.Serializer):
-    status = serializers.CharField(max_length=10, required=True)
-    referral_id = serializers.CharField(max_length=10, required=True)
+    status = serializers.CharField(max_length=50, required=True)
+    referral_id = serializers.CharField(max_length=50, required=True)
 
     def validate(self, attrs):
         status = attrs.get("status")
@@ -159,7 +159,7 @@ class UpdateReferralStatusSerializer(serializers.Serializer):
 
 
 class FacilityBranchSerializer(serializers.Serializer):
-    name = serializers.CharField(max_length=10, required=True)
+    name = serializers.CharField(max_length=255, required=True)
 
     def validate(self, attrs):
         name = attrs.get("name")
@@ -258,3 +258,55 @@ class LabTechnicianSerializer(serializers.Serializer):
             "facility_branch_name": facility_branch.name,
             "created_at": lab_technician.assigned_at,
         }
+
+
+class ChangePasswordSerializer(serializers.Serializer):
+    current_password = serializers.CharField(
+        write_only=True,
+        required=True,
+        validators=[validate_strong_password],
+        style={"input_type": "password"},
+    )
+    new_password = serializers.CharField(
+        write_only=True,
+        required=True,
+        validators=[validate_strong_password],
+        style={"input_type": "password"},
+    )
+    confirm_new_password = serializers.CharField(
+        write_only=True,
+        required=True,
+        validators=[validate_strong_password],
+        style={"input_type": "password"},
+    )
+
+    def validate(self, attrs):
+        current_password = attrs.get("current_password")
+        new_password = attrs.get("new_password")
+        confirm_new_password = attrs.get("confirm_new_password")
+        user = self.context["user"]
+
+        # Validate current password
+        if not user.check_password(current_password):
+            raise serializers.ValidationError(
+                {"current_password": "Current password is incorrect."}
+            )
+
+        # Validate new password match
+        if new_password != confirm_new_password:
+            raise serializers.ValidationError(
+                {
+                    "confirm_new_password": "New password and confirm password do not match."
+                }
+            )
+
+        return attrs
+
+    def create(self, validated_data):
+        user = self.context["user"]
+        new_password = validated_data["new_password"]
+
+        user.set_password(new_password)
+        user.save()
+
+        return user

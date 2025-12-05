@@ -63,6 +63,8 @@ class User(AbstractUser):
         # If full_name is provided and is a string, set username to a lowercased,
         # space-free version of full_name
         if self.full_name and isinstance(self.full_name, str):
-            processed_username = self.full_name.replace(" ", "").lower()
+            processed_username = (
+                f"{self.full_name.replace(' ', '').lower()}{uuid.uuid4().hex[:6]}"
+            )
             self.username = processed_username
         super().save(*args, **kwargs)

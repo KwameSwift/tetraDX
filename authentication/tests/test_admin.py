@@ -358,20 +358,22 @@ class UserAdminIntegrationTestCase(TestCase):
     """Integration tests for UserAdmin with Django admin site"""
 
     def setUp(self):
-        # Note: User model sets username from full_name in save(), so "Admin User" becomes "adminuser"
+        # Create superuser - note that save() will generate username from full_name
         self.superuser = User.objects.create_superuser(
-            username="adminuser",  # Will be overridden by save() based on full_name
+            username="temp",  # Will be overridden by save()
             full_name="Admin User",
             phone_number="0123456789",
-            password="admin123",
         )
-        # Ensure superuser flags are set
+        # Set password properly and ensure superuser flags are set
+        self.superuser.set_password("admin123")
         self.superuser.is_staff = True
         self.superuser.is_superuser = True
         self.superuser.save()
 
-        # Log in with the processed username
-        login_successful = self.client.login(username="adminuser", password="admin123")
+        # Log in with the generated username
+        login_successful = self.client.login(
+            username=self.superuser.username, password="admin123"
+        )
         self.assertTrue(login_successful, "Login failed")
 
         self.facility = Facility.objects.create(

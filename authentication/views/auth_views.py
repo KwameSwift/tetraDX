@@ -138,7 +138,7 @@ class LoginView(APIView):
 
         user_data.update(
             {
-                "in_new_user": user.last_login is None,
+                "is_new_user": user.last_login is None,
                 "is_admin": facility.admin == user if facility else False,
                 "facility_name": facility.name if facility else None,
                 "branches": branches,

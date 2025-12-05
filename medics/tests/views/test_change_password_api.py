@@ -12,7 +12,7 @@ class ChangePasswordTestCase(BaseTestCase):
     """
 
     def setUp(self):
-        self.url = reverse_lazy("auth:change-password")
+        self.url = reverse_lazy("medics:change-password")
 
         # Create a test user
         self.test_user = User.objects.create_user(

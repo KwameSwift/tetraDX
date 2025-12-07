@@ -552,18 +552,9 @@ class FacilityBranchView(BaseAPIView):
     def post(self, request, *args, **kwargs):
         user = request.user
 
-        facility_branch = models.BranchTechnician.objects.filter(
-            user__id=user.id
-        ).first()
-
-        facility = facility_branch.branch.facility if facility_branch else None
+        facility = models.Facility.objects.filter(admin=user).first()
 
         if not facility:
-            raise api_exception(
-                "Unauthorized: User is not associated with any facility.",
-            )
-
-        if not facility.admin == user:
             raise api_exception(
                 "Unauthorized: Only facility admins can add branches.",
             )
@@ -592,18 +583,9 @@ class FacilityBranchView(BaseAPIView):
         user = request.user
         branch_id = self.kwargs.get("branch_id")
 
-        technician = models.BranchTechnician.objects.filter(user__id=user.id).first()
-
-        facility = (
-            technician.branch.facility if technician and technician.branch else None
-        )
+        facility = models.Facility.objects.filter(admin=user).first()
 
         if not facility:
-            raise api_exception(
-                "Unauthorized: User is not associated with any facility.",
-            )
-
-        if not facility.admin == user:
             raise api_exception(
                 "Unauthorized: Only facility admins can delete branches.",
             )
@@ -636,19 +618,11 @@ class AddLabTechnicianView(BaseAPIView):
     def post(self, request, *args, **kwargs):
         user = request.user
 
-        technician = models.BranchTechnician.objects.filter(user__id=user.id).first()
+        facility = models.Facility.objects.filter(admin=user).first()
 
-        facility = (
-            technician.branch.facility if technician and technician.branch else None
-        )
         if not facility:
             raise api_exception(
-                "Unauthorized: User is not associated with any facility.",
-            )
-
-        if not facility.admin == user:
-            raise api_exception(
-                "Unauthorized: Only facility admins can add lab technicians.",
+                "Unauthorized: Only facility admins can add Lab Technicians.",
             )
 
         serializer = serializers.LabTechnicianSerializer(

@@ -209,7 +209,8 @@ class AddLabTechnicianTestCase(BaseTestCase):
         self.assertEqual(response.status_code, 400)
         response_data = response.json()
         self.assertIn(
-            "Only facility admins can add lab technicians", response_data["detail"]
+            "Unauthorized: Only facility admins can add Lab Technicians.",
+            response_data["detail"],
         )
 
     def test_add_lab_technician_unauthenticated(self):
@@ -269,7 +270,10 @@ class AddLabTechnicianTestCase(BaseTestCase):
 
         self.assertEqual(response.status_code, 400)
         response_data = response.json()
-        self.assertIn("not associated with any facility", response_data["detail"])
+        self.assertIn(
+            "Unauthorized: Only facility admins can add Lab Technicians.",
+            response_data["detail"],
+        )
 
     def tearDown(self):
         User.objects.all().delete()

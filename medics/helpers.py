@@ -61,7 +61,10 @@ def get_user_branches(user):
 
     if facility_as_admin:
         # If user is admin of a facility, return ALL branches for that facility
-        return list(facility_as_admin.branches.all())
+        return {
+            "branches": list(facility_as_admin.branches.all()),
+            "facility": facility_as_admin,
+        }
 
     # If user is not a facility admin, check if user is assigned to any branches
     # This uses the BranchTechnician model through the related_name
@@ -72,7 +75,10 @@ def get_user_branches(user):
         # You might want to add ordering if you have specific criteria
         first_assignment = branch_technician_assignments.first()
         # Return a list with just the first branch
-        return [first_assignment.branch]
+        return {
+            "branches": [first_assignment.branch],
+            "facility": first_assignment.branch.facility,
+        }
 
     # User is not a facility admin and not assigned to any branches
-    return None
+    return {"branches": [], "facility": None}

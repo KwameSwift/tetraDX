@@ -115,11 +115,9 @@ class LoginView(APIView):
         """
         Adds facility + branch info to user_data for lab technicians.
         """
-        user_branches = get_user_branches(user) or []
-
-        # Collect facilities
-        facilities = {branch.facility for branch in user_branches}
-        facility = next(iter(facilities), None)
+        user_branches_info = get_user_branches(user)
+        user_branches = user_branches_info["branches"]
+        facility = user_branches_info["facility"]
 
         # Branch list formatting
         branches = [

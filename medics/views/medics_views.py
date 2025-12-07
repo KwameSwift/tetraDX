@@ -259,7 +259,8 @@ class GetTechnicianReferralsView(BaseAPIView):
         if not user.user_type == UserType.LAB_TECHNICIAN.value:
             raise api_exception("You do not have permission to view these referrals.")
 
-        user_branches = get_user_branches(user)
+        user_branches_info = get_user_branches(user)
+        user_branches = user_branches_info["branches"]
 
         if not user_branches:
             referrals_qs = models.Referral.objects.none()

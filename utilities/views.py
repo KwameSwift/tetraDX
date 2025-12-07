@@ -6,7 +6,7 @@ from rest_framework_simplejwt.authentication import JWTAuthentication
 
 from _tetradx.helpers import api_exception
 from authentication.models import UserType
-from medics.models import BranchTechnician
+from medics.models import Facility
 from utilities.serializers import TestTypeSerializer
 
 
@@ -23,9 +23,8 @@ class AddTestTypes(APIView):
                 "Unauthorized: Only Lab Technicians can add test types.",
             )
 
-        # Get the facility through BranchTechnician relationship
-        branch_tech = BranchTechnician.objects.filter(user=user).first()
-        facility = branch_tech.branch.facility if branch_tech else None
+        # Get the facility
+        facility = Facility.objects.filter(admin=user).first()
 
         if not facility and not user.is_staff:
             raise api_exception(

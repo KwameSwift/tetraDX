@@ -219,6 +219,7 @@ class ReferralTestAdmin(admin.ModelAdmin):
     list_display = (
         "referral_id",
         "facility_name",
+        "branch_name",
         "test_name",
         "test_type_name",
         "status_display",
@@ -248,6 +249,11 @@ class ReferralTestAdmin(admin.ModelAdmin):
             return obj.referral.facility_branch.facility.name
         return None
 
+    def branch_name(self, obj):
+        if obj.referral.facility_branch:
+            return obj.referral.facility_branch.name
+        return None
+
     def test_name(self, obj):
         return obj.test.name
 
@@ -261,6 +267,7 @@ class ReferralTestAdmin(admin.ModelAdmin):
 
     referral_id.short_description = "Referral ID"
     facility_name.short_description = "Facility"
+    branch_name.short_description = "Branch"
     test_name.short_description = "Test Name"
     test_type_name.short_description = "Test Type"
     status_display.short_description = "Status"

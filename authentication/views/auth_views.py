@@ -65,38 +65,42 @@ class LoginView(APIView):
 
     def post(self, request, *args, **kwargs):
         serializer = LoginSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
+        serializer.is_valid()
 
-        user = serializer.validated_data["user"]
+        if serializer.is_valid():
+            user = serializer.validated_data["user"]
 
-        data = {
-            "refresh_token": None,
-            "access_token": None,
-            "user_data": self._get_base_user_data(user),
-        }
+            data = {
+                "refresh_token": None,
+                "access_token": None,
+                "user_data": self._get_base_user_data(user),
+            }
 
-        # Auth tokens
-        refresh = RefreshToken.for_user(user)
-        data["refresh_token"] = str(refresh)
-        data["access_token"] = str(refresh.access_token)
+            # Auth tokens
+            refresh = RefreshToken.for_user(user)
+            data["refresh_token"] = str(refresh)
+            data["access_token"] = str(refresh.access_token)
 
-        # Extra info for lab technicians
-        if user.user_type == UserType.LAB_TECHNICIAN.value:
-            self._attach_lab_technician_data(user, data["user_data"])
+            # Extra info for lab technicians
+            if user.user_type == UserType.LAB_TECHNICIAN.value:
+                self._attach_lab_technician_data(user, data["user_data"])
 
-        # Update last login
-        user.last_login = timezone.now()
-        user.save(update_fields=["last_login"])
+            # Update last login
+            user.last_login = timezone.now()
+            user.save(update_fields=["last_login"])
 
-        return JsonResponse(
-            {
-                "status": "success",
-                "message": "Login successful",
-                "data": data,
-            },
-            safe=False,
-            status=status.HTTP_200_OK,
-        )
+            return JsonResponse(
+                {
+                    "status": "success",
+                    "message": "Login successful",
+                    "data": data,
+                },
+                safe=False,
+                status=status.HTTP_200_OK,
+            )
+
+        # Raise validation errors
+        raise api_exception(serializer.errors)
 
     # ----------------------------------------------------------------------
     # Helpers
@@ -132,7 +136,12 @@ class LoginView(APIView):
             {
                 "is_new_user": user.last_login is None,
                 "is_admin": facility.admin == user if facility else False,
-                "facility_name": facility.name if facility else None,
+                "facility": {
+                    "id": facility.id,
+                    "name": facility.name,
+                }
+                if facility
+                else None,
                 "branches": branches,
             }
         )

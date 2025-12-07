@@ -147,8 +147,9 @@ class AddTestTypesTestCase(BaseTestCase):
         # Should return validation error
         self.assertEqual(response2.status_code, 400)
         response2_json = response2.json()
-        self.assertIn("name", response2_json)
-        self.assertIn("already exists", response2_json["name"][0])
+        self.assertIn("detail", response2_json)
+        self.assertIn("name", response2_json["detail"])
+        self.assertIn("already exists", response2_json["detail"]["name"][0])
 
     def test_add_test_types_missing_required_fields(self):
         """
@@ -166,7 +167,8 @@ class AddTestTypesTestCase(BaseTestCase):
 
         self.assertEqual(response.status_code, 400)
         response = response.json()
-        self.assertIn("name", response)
+        self.assertIn("detail", response)
+        self.assertIn("name", response["detail"])
 
         # Missing tests
         test_data2 = {"name": "Test Type"}
@@ -180,7 +182,8 @@ class AddTestTypesTestCase(BaseTestCase):
 
         self.assertEqual(response2.status_code, 400)
         response2 = response2.json()
-        self.assertIn("tests", response2)
+        self.assertIn("detail", response2)
+        self.assertIn("tests", response2["detail"])
 
         # Empty tests list
         test_data3 = {"name": "Test Type", "tests": []}
@@ -194,7 +197,8 @@ class AddTestTypesTestCase(BaseTestCase):
 
         self.assertEqual(response3.status_code, 400)
         response3 = response3.json()
-        self.assertIn("tests", response3)
+        self.assertIn("detail", response3)
+        self.assertIn("tests", response3["detail"])
 
     def test_add_test_types_unauthenticated(self):
         """

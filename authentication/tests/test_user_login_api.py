@@ -63,10 +63,15 @@ class UserLoginTestCase(BaseTestCase):
         self.assertEqual(response.status_code, 400)
         response = response.json()
         # DRF's raise_exception=True returns errors without wrapper
-        self.assertIn("phone_number_and_password", response)
         self.assertEqual(
-            response["phone_number_and_password"],
-            ["Invalid phone number or password."],
+            response,
+            {
+                "status": "error",
+                "code": "400",
+                "detail": {
+                    "phone_number_and_password": ["Invalid phone number or password."]
+                },
+            },
         )
 
     def test_user_login_missing_phone_number(self):
@@ -84,10 +89,17 @@ class UserLoginTestCase(BaseTestCase):
         self.assertEqual(response.status_code, 400)
         response = response.json()
         # DRF's raise_exception=True returns errors without wrapper
-        self.assertIn("phone_number", response)
-        self.assertIn("password", response)
-        self.assertEqual(response["phone_number"], ["This field is required."])
-        self.assertEqual(response["password"], ["This field is required."])
+        self.assertEqual(
+            response,
+            {
+                "status": "error",
+                "code": "400",
+                "detail": {
+                    "phone_number": ["This field is required."],
+                    "password": ["This field is required."],
+                },
+            },
+        )
 
     def tearDown(self):
         User.objects.all().delete()

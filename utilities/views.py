@@ -47,4 +47,6 @@ class AddTestTypes(APIView):
                 },
                 status=status.HTTP_200_OK,
             )
-        return JsonResponse(serializer.errors, status=400)
+
+        # Raise validation errors
+        raise api_exception(serializer.errors)

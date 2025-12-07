@@ -51,24 +51,28 @@ def referral_permission_required():
 def get_user_branches(user):
     """
     Returns a list of branch IDs based on the user's relationship:
-    - If user has branches: return those branch IDs.
-    - If user has no branches but is a facility admin: return all branches under that facility.
-    - Otherwise: return an empty list.
+    - If user is admin of a facility: return ALL branches for that facility.
+    - If user is not an admin but has assigned branches: return the FIRST branch only.
+    - Otherwise: return None.
     """
 
-    # Check if user is a branch technician
-    user_branches = models.FacilityBranch.objects.filter(technicians__user=user)
+    # First check if user is a facility admin
+    facility_as_admin = models.Facility.objects.filter(admin=user).first()
 
-    if user_branches.exists():
-        # User belongs to one or more branches
-        return list(user_branches)
+    if facility_as_admin:
+        # If user is admin of a facility, return ALL branches for that facility
+        return list(facility_as_admin.branches.all())
 
-    # If user has no branch, check if user is a facility admin
-    facility = models.Facility.objects.filter(admin=user).first()
+    # If user is not a facility admin, check if user is assigned to any branches
+    # This uses the BranchTechnician model through the related_name
+    branch_technician_assignments = models.BranchTechnician.objects.filter(user=user)
 
-    if facility:
-        # Return all branches for this facility
-        return list(facility.branches.all())
+    if branch_technician_assignments.exists():
+        # Get the first branch assignment (ordered by assigned_at or primary key)
+        # You might want to add ordering if you have specific criteria
+        first_assignment = branch_technician_assignments.first()
+        # Return a list with just the first branch
+        return [first_assignment.branch]
 
-    # User has no branch and is not a facility admin
+    # User is not a facility admin and not assigned to any branches
     return None
